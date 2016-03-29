@@ -36,7 +36,8 @@
   <modules>
     <module>tika-addons-parent</module>
     <module>pdfbox18-shaded</module>
-<!--    <module>pdfbox18-shaded-integration-test</module>-->
+    <module>pdfbox18-shaded-integration-tests</module>
+    <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
 </project>

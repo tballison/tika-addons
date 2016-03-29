@@ -1,0 +1,18 @@
+This is a toy example of what a backoff parser might look like.
+
+Because Intellij apparently uses the unshaded module instead of the shaded jar,
+I couldn't add this in the maven dependency to a module in the same project:
+
+    <dependency>
+      <groupId>org.tallison</groupId>
+      <artifactId>pdfbox18-shaded</artifactId>
+      <version>1.13-SNAPSHOT</version>
+      <type>jar</type>
+    </dependency>
+
+I followed the workaround described (http://stackoverflow.com/questions/15731713/maven-shade-relocations-accross-all-modules)
+and manually added the shaded jar to the project.
+
+This is a bad idea.  Any recommendations are welcomed!
+
+I also tried this as a separate project, and pulled from my local repo, and all worked.
