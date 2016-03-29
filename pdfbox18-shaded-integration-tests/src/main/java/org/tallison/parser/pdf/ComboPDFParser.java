@@ -38,7 +38,7 @@ public class ComboPDFParser extends AbstractParser {
         try {
             parse(tmpFile, contentHandler, metadata, parseContext);
         } finally {
-            Files.delete(tmpFile);
+            temporaryResources.dispose();
         }
     }
 
