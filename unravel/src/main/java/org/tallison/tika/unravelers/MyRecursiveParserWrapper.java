@@ -1,6 +1,3 @@
-package org.tallison.tika.unravelers;
-
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,6 +14,7 @@ package org.tallison.tika.unravelers;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.tallison.tika.unravelers;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -35,7 +35,6 @@
 
   <modules>
     <module>tika-addons-parent</module>
-    <module>recursive-parser-wrapper</module>
       <module>unravel</module>
       <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
