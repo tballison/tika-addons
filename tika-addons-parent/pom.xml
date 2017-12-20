@@ -16,7 +16,7 @@
     <log4j.version>2.4.1</log4j.version>
     <pdfbox18.version>1.8.11</pdfbox18.version>
     <jempbox.version>1.8.11</jempbox.version>
-    <tika.version>1.17</tika.version>
+    <tika.version>1.6</tika.version>
     <commons.io.version>2.4</commons.io.version>
     <slf4j.version>1.7.12</slf4j.version>
     <cli.version>1.4</cli.version>
@@ -63,11 +63,6 @@
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
-      <version>${tika.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-batch</artifactId>
       <version>${tika.version}</version>
     </dependency>
     <dependency>
