@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.tallison</groupId>
     <artifactId>tika-addons-parent</artifactId>
-    <version>1.6</version>
+    <version>1.17</version>
     <relativePath>tika-addons-parent/pom.xml</relativePath>
   </parent>
 
@@ -36,7 +36,8 @@
   <modules>
     <module>tika-addons-parent</module>
     <module>recursive-parser-wrapper</module>
-    <!--    <module>pdfbox18-shaded-integration-test</module>-->
+      <module>unravel</module>
+      <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
 </project>
