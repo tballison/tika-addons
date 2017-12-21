@@ -33,7 +33,6 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.BasicContentHandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tallison.tika.unravelers.pst.PSTUnraveler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -106,9 +105,10 @@ public class UnravelCLI {
     }
 
     private static void handleFile(Path inputFile, Path root, String subDir) throws IOException, TikaException, SAXException {
-        PSTUnraveler pstUnraveler = new PSTUnraveler(new DefaultPostParseHandler(root, subDir),
-                new MyRecursiveParserWrapper(new AutoDetectParser(),
-                        new BasicContentHandlerFactory(BasicContentHandlerFactory.HANDLER_TYPE.TEXT, -1)));
+        AutoDetectUnraveler autoDetectUnraveler = new AutoDetectUnraveler(
+                new AutoDetectParser(),
+                new BasicContentHandlerFactory(BasicContentHandlerFactory.HANDLER_TYPE.TEXT, -1),
+                new DefaultPostParseHandler(root, subDir));
 
         Detector detector = TikaConfig.getDefaultConfig().getDetector();
         MediaType mediaType = null;
@@ -118,14 +118,13 @@ public class UnravelCLI {
             mediaType = detector.detect(is, metadata);
         }
         ParseContext parseContext = new ParseContext();
-        if (pstUnraveler.getSupportedTypes(parseContext).contains(mediaType)) {
+        if (autoDetectUnraveler.getSupportedTypes(parseContext).contains(mediaType)) {
             try (InputStream is = TikaInputStream.get(inputFile)) {
-                pstUnraveler.parse(is, new DefaultHandler(), new Metadata(), parseContext);
+                autoDetectUnraveler.parse(is, new DefaultHandler(), new Metadata(), parseContext);
             }
         } else {
             LOG.info("Skipping "+inputFile.toString() +", detected as non-supported file type: "+mediaType.toString());
         }
-
     }
 
     private static void USAGE() {

@@ -17,47 +17,31 @@
 
 package org.tallison.tika.unravelers;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.tika.TikaTest;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.serialization.JsonMetadataList;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.RecursiveParserWrapper;
 import org.apache.tika.sax.BasicContentHandlerFactory;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.tallison.tika.unravelers.pst.PSTUnraveler;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestPSTUnraveler extends TikaTest {
-    Path tmpDir = null;
-    @Before
-    public void setUp() throws IOException {
-        tmpDir = Files.createTempDirectory("tst-pst-unravel");
-    }
+public class TestPSTUnraveler extends UnravelerTestBase {
 
-    @After
-    public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(tmpDir.toFile());
-    }
 
     @Test
     public void testRecursive() throws Exception {
-        PSTUnraveler pstUnraveler = new PSTUnraveler(new DefaultPostParseHandler(tmpDir, null),
-                new MyRecursiveParserWrapper(new AutoDetectParser(),
-                        new BasicContentHandlerFactory(BasicContentHandlerFactory.HANDLER_TYPE.TEXT, -1)));
+        AutoDetectUnraveler pstUnraveler = new AutoDetectUnraveler(new AutoDetectParser(),
+                new BasicContentHandlerFactory(BasicContentHandlerFactory.HANDLER_TYPE.TEXT, -1),
+                new DefaultPostParseHandler(tmpDir, null));
         try (InputStream is = getResourceAsStream("/test-documents/test_embedded.pst")) {
             pstUnraveler.parse(is, new DefaultHandler(), new Metadata(), new ParseContext());
         }

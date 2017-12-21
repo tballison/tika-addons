@@ -30,13 +30,15 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.Office;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
-import org.apache.tika.parser.AbstractParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.RecursiveParserWrapper;
 import org.apache.tika.parser.mbox.OutlookPSTParser;
 import org.apache.tika.parser.microsoft.OutlookExtractor;
+import org.apache.tika.sax.ContentHandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tallison.tika.unravelers.AbstractUnraveler;
 import org.tallison.tika.unravelers.MyRecursiveParserWrapper;
 import org.tallison.tika.unravelers.PostParseHandler;
 import org.tallison.tika.unravelers.RecursiveRoot;
@@ -58,7 +60,7 @@ import static java.util.Collections.singleton;
 /**
  * WARNING: THIS IS NOT THREAD SAFE!!!
  */
-public class PSTUnraveler extends AbstractParser {
+public class PSTUnraveler extends AbstractUnraveler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PSTUnraveler.class);
 
@@ -73,12 +75,9 @@ public class PSTUnraveler extends AbstractParser {
         return attributes;
     }
 
-    private final PostParseHandler postParseHandler;
-    private final MyRecursiveParserWrapper recursiveParserWrapper;
 
-    public PSTUnraveler(PostParseHandler postParseHandler, MyRecursiveParserWrapper recursiveParserWrapper) {
-        this.postParseHandler = postParseHandler;
-        this.recursiveParserWrapper = recursiveParserWrapper;
+    public PSTUnraveler(Parser parser, ContentHandlerFactory contentHandlerFactory, PostParseHandler postParseHandler) {
+        super(parser, contentHandlerFactory, postParseHandler);
     }
 
     @Override
@@ -89,7 +88,7 @@ public class PSTUnraveler extends AbstractParser {
     public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
             throws IOException, SAXException, TikaException {
 
-
+        MyRecursiveParserWrapper recursiveParserWrapper = getRecursiveParserWrapper();
         TikaInputStream in = TikaInputStream.get(stream);
         PSTFile pstFile = null;
         try {
@@ -97,7 +96,7 @@ public class PSTUnraveler extends AbstractParser {
             boolean isValid = pstFile.getFileHandle().getFD().valid();
             metadata.set("isValid", valueOf(isValid));
             if (isValid) {
-                parseFolder(pstFile.getRootFolder());
+                parseFolder(pstFile.getRootFolder(), recursiveParserWrapper);
             }
         } catch (Exception e) {
             throw new TikaException(e.getMessage(), e);
@@ -113,7 +112,7 @@ public class PSTUnraveler extends AbstractParser {
 
     }
 
-    private void parseFolder(PSTFolder pstFolder)
+    private void parseFolder(PSTFolder pstFolder, MyRecursiveParserWrapper recursiveParserWrapper)
             throws Exception {
         if (pstFolder.getContentCount() > 0) {
             PSTMessage pstMail = (PSTMessage) pstFolder.getNextChild();
@@ -126,9 +125,9 @@ public class PSTUnraveler extends AbstractParser {
                 //modifications to mailMetadata from making it into the
                 //metadata objects cached by the RecursiveParserWrapper
                 try {
-                    parseMailAttachments(pstMail, mailMetadata);
+                    parseMailAttachments(pstMail, mailMetadata, recursiveParserWrapper);
                     parserMailItem(pstMail, mailMetadata);
-                    postParse(mailMetadata);
+                    postParse(mailMetadata, recursiveParserWrapper);
                 } finally {
                     recursiveParserWrapper.reset();
                 }
@@ -139,15 +138,15 @@ public class PSTUnraveler extends AbstractParser {
 
         if (pstFolder.hasSubfolders()) {
             for (PSTFolder pstSubFolder : pstFolder.getSubFolders()) {
-                parseFolder(pstSubFolder);
+                parseFolder(pstSubFolder, recursiveParserWrapper);
             }
         }
     }
 
-    private void postParse(Metadata mailMetadata) {
+    private void postParse(Metadata mailMetadata, MyRecursiveParserWrapper myRecursiveParserWrapper) {
         List<Metadata> metadataList = new ArrayList<>();
         metadataList.add(mailMetadata);
-        metadataList.addAll(recursiveParserWrapper.getMetadata());
+        metadataList.addAll(myRecursiveParserWrapper.getMetadata());
         try {
             postParseHandler.handle(metadataList);
         } catch (IOException|TikaException e) {
@@ -228,7 +227,7 @@ public class PSTUnraveler extends AbstractParser {
     }
 
     private void parseMailAttachments(PSTMessage email,
-                                      final Metadata mailMetadata)
+                                      final Metadata mailMetadata, final MyRecursiveParserWrapper recursiveParserWrapper)
             throws TikaException {
         int numberOfAttachments = email.getNumberOfAttachments();
 
