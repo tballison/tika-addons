@@ -131,7 +131,7 @@ public class UnravelCLI {
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp(
                 80,
-                "java -jar unravel.jar -i my_pst.pst -o <outdir>",
+                "java -cp tika_bin/* org.tallison.tika.unravelers.UnravelCLI -i my_pst.pst -o <outdir>",
                 "Unravel PSTs",
                 OPTIONS,
                 "");
