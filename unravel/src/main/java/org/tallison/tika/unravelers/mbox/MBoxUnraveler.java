@@ -135,8 +135,9 @@ public class MBoxUnraveler extends AbstractUnraveler {
                         saveHeaderInMetadata(mailMetadata, item);
                     }
 
+
                     try (InputStream is = TikaInputStream.get(message.toByteArray())){
-                        recursiveParserWrapper.parse(is, new DefaultHandler(), mailMetadata, new ParseContext());
+                        recursiveParserWrapper.parse(is, new DefaultHandler(), mailMetadata, context);
                         postParseHandler.handle(recursiveParserWrapper.getMetadata());
                     } catch (Exception e) {
                         LOG.warn("problem parsing or writing", e);

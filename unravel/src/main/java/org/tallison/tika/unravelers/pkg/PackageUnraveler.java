@@ -169,7 +169,7 @@ public class PackageUnraveler extends AbstractUnraveler {
             ArchiveEntry entry = ais.getNextEntry();
             while (entry != null) {
                 if (!entry.isDirectory()) {
-                    parseEntry(ais, entry, recursiveParserWrapper);
+                    parseEntry(ais, entry, recursiveParserWrapper, context);
                 }
                 entry = ais.getNextEntry();
             }
@@ -192,7 +192,7 @@ public class PackageUnraveler extends AbstractUnraveler {
 
     private void parseEntry(
             ArchiveInputStream archive, ArchiveEntry entry,
-            MyRecursiveParserWrapper recursiveParserWrapper)
+            MyRecursiveParserWrapper recursiveParserWrapper, ParseContext context)
             throws SAXException, IOException, TikaException {
         String name = entry.getName();
         if (archive.canReadEntryData(entry)) {
@@ -202,7 +202,7 @@ public class PackageUnraveler extends AbstractUnraveler {
                 TemporaryResources tmp = new TemporaryResources();
                 InputStream tis = TikaInputStream.get(archive, tmp);
                 try {
-                    recursiveParserWrapper.parse(tis, new DefaultHandler(), entrydata, new ParseContext());
+                    recursiveParserWrapper.parse(tis, new DefaultHandler(), entrydata, context);
                 } finally {
                     tmp.close();
                 }

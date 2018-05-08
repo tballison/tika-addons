@@ -14,18 +14,19 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class TestMboxUnraveler extends UnravelerTestBase {
     @Test
-    @Ignore("until this is an actual test")
+    //@Ignore("until this is an actual test")
     public void testRecursive() throws Exception {
 
         MBoxUnraveler unraveler = new MBoxUnraveler(new AutoDetectParser(),
                 new BasicContentHandlerFactory(BasicContentHandlerFactory.HANDLER_TYPE.TEXT, -1),
                 new DefaultPostParseHandler(tmpDir, null));
 
-        try (InputStream is = getResourceAsStream("/test-documents/testMBOX_complex.mbox")) {
+        try (InputStream is = Files.newInputStream(Paths.get("C:/data/noaa/input/noaa-example.mbox"))) {
             unraveler.parse(is, new DefaultHandler(), new Metadata(), new ParseContext());
         }
 
