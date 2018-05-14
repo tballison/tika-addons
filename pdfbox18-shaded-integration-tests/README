@@ -6,7 +6,7 @@ I couldn't add this in the maven dependency to a module in the same project:
     <dependency>
       <groupId>org.tallison</groupId>
       <artifactId>pdfbox18-shaded</artifactId>
-      <version>1.13-SNAPSHOT</version>
+      <version>1.19-SNAPSHOT</version>
       <type>jar</type>
     </dependency>
 

@@ -6,17 +6,17 @@
 
   <groupId>org.tallison</groupId>
   <artifactId>tika-addons-parent</artifactId>
-  <version>1.13-SNAPSHOT</version>
+  <version>1.19-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <log4j.version>2.4.1</log4j.version>
     <pdfbox18.version>1.8.11</pdfbox18.version>
     <jempbox.version>1.8.11</jempbox.version>
-    <tika.version>1.13-SNAPSHOT</tika.version>
+    <tika.version>1.18</tika.version>
     <commons.io.version>2.4</commons.io.version>
     <slf4j.version>1.7.12</slf4j.version>
   </properties>
