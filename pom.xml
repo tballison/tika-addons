@@ -25,13 +25,14 @@
   <parent>
     <groupId>org.tallison.tika</groupId>
     <artifactId>tika-addons-parent</artifactId>
-    <version>1.18-0.2</version>
+    <version>1.18-0.3</version>
     <relativePath>tika-addons-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>tika-addons</artifactId>
   <packaging>pom</packaging>
   <name>Apache Tika addons</name>
+  <description>This package offers a standalone version of a fork parser that wraps a RecursiveParserWrapper</description>
 
   <modules>
     <module>tika-addons-parent</module>

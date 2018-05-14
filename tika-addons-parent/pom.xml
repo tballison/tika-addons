@@ -6,7 +6,7 @@
 
   <groupId>org.tallison.tika</groupId>
   <artifactId>tika-addons-parent</artifactId>
-  <version>1.18-0.2</version>
+  <version>1.18-0.3</version>
   <packaging>pom</packaging>
 
   <name>Apache Tika addons parent</name>
@@ -43,6 +43,7 @@
     <commons.io.version>2.6</commons.io.version>
     <slf4j.version>1.7.12</slf4j.version>
   </properties>
+  <dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.apache.tika</groupId>
@@ -59,6 +60,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  </dependencyManagement>
   <distributionManagement>
     <!-- <snapshotRepository>
          <id>sonatype-nexus-staging</id>

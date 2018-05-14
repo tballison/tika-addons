@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.tallison.tika</groupId>
         <artifactId>tika-addons-parent</artifactId>
-        <version>1.18-0.2</version>
+        <version>1.18-0.3</version>
         <relativePath>../tika-addons-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -60,6 +60,11 @@
             <version>2.6</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <resources>
@@ -93,6 +98,7 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
+                <version>0.12</version>
                 <configuration>
                     <excludes>
                         <exclude>src/test/resources/test-data/**</exclude>
