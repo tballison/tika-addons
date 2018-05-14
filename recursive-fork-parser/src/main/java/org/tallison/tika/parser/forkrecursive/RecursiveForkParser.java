@@ -64,8 +64,9 @@ public class RecursiveForkParser {
 
     /**
      * Returns the command used to start the forked server process.
-     * <p/>
+     * <p>
      * Returned list is unmodifiable.
+     * </p>
      * @return java command line args
      */
     public List<String> getJava() {
@@ -78,8 +79,8 @@ public class RecursiveForkParser {
 
     /**
      * Initialize with the full commandline to start the child processes
-     * e.g. java, -Xmx1g, -cp, classPath
-     * @param java
+     * e.g. java, -Xmx1g, -cp, classPath (DO NOT include the class name)
+     * @param java -full commandline minus the class name
      */
     public RecursiveForkParser(List<String> java) {
         this.java = Collections.unmodifiableList(java);

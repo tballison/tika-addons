@@ -23,9 +23,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.tallison</groupId>
+    <groupId>org.tallison.tika</groupId>
     <artifactId>tika-addons-parent</artifactId>
-    <version>1.19-SNAPSHOT</version>
+    <version>1.18-0.1</version>
     <relativePath>tika-addons-parent/pom.xml</relativePath>
   </parent>
 
@@ -35,10 +35,18 @@
 
   <modules>
     <module>tika-addons-parent</module>
-    <module>pdfbox18-shaded</module>
-    <module>pdfbox18-shaded-integration-tests</module>
       <module>recursive-fork-parser</module>
       <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
-
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>2.8.2</version>
+        <configuration>
+          <skip>true</skip> <!-- No need to deploy the reactor -->
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
