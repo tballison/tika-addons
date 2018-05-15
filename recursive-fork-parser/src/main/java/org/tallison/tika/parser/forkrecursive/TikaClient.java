@@ -77,39 +77,39 @@ class TikaClient implements AutoCloseable {
     public List<Metadata> parse(Path file) throws TikaException {
         filesProcessed++;
         try {
-                toChild.writeByte(TikaChildProcess.CALL);
-                toChild.flush();
-                toChild.writeUTF(file.toAbsolutePath().toString());
-                toChild.flush();
+            toChild.writeByte(TikaChildProcess.CALL);
+            toChild.flush();
+            toChild.writeUTF(file.toAbsolutePath().toString());
+            toChild.flush();
 
-                int n = fromChild.readByte();
-                byte[] compressedFromChild = null;
-                if (n == READY) {
-                    int length = fromChild.readInt();
-                    if (length < 0 || length > MAX_BUFFER) {
-                        throw new IOException("response too long: "+length);
-                    }
-                    compressedFromChild = new byte[length];
-                    IOUtils.readFully(fromChild, compressedFromChild, 0, length);
-                } else {
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    try {
-                        while (n != -1) {
-                            bos.write(n);
-                            n = fromChild.readByte();
-                        }
-                    } catch (EOFException e) {
-                        //swallow
-                    }
-                    throw new FatalTikaParseException("expected ready: "+new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            int n = fromChild.readByte();
+            byte[] compressedFromChild = null;
+            if (n == READY) {
+                int length = fromChild.readInt();
+                if (length < 0 || length > MAX_BUFFER) {
+                    throw new IOException("response too long: " + length);
                 }
+                compressedFromChild = new byte[length];
+                IOUtils.readFully(fromChild, compressedFromChild, 0, length);
+            } else {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                try {
+                    while (n != -1) {
+                        bos.write(n);
+                        n = fromChild.readByte();
+                    }
+                } catch (EOFException e) {
+                    //swallow
+                }
+                throw new FatalTikaParseException("expected ready: " + new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            }
 
-                try (Reader reader = new InputStreamReader(
-                        new FramedSnappyCompressorInputStream(
-                        new ByteArrayInputStream(compressedFromChild)), StandardCharsets.UTF_8)) {
-                             //new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)) {
-                    return JsonMetadataList.fromJson(reader);
-                }
+            try (Reader reader = new InputStreamReader(
+                    new FramedSnappyCompressorInputStream(
+                            new ByteArrayInputStream(compressedFromChild)), StandardCharsets.UTF_8)) {
+                //new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)) {
+                return JsonMetadataList.fromJson(reader);
+            }
         } catch (IOException e) {
             throw new FatalTikaParseException("serious problem with parser", e);
         }

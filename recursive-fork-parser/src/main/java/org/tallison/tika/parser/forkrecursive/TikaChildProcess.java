@@ -89,7 +89,7 @@ class TikaChildProcess implements Runnable, Checksum {
         long timeout = DEFAULT_TIMEOUT_MILLIS;
         if (System.getProperty(TIKA_FORKED_CHILD_TIMEOUT_PROP) != null) {
             timeout = Long.parseLong(System.getProperty(TIKA_FORKED_CHILD_TIMEOUT_PROP));
-            LOGGER.debug("read "+timeout+ " timeout milliseconds from the commandline");
+            LOGGER.debug("read " + timeout + " timeout milliseconds from the commandline");
         }
 
         Parser auto = new AutoDetectParser();
@@ -157,8 +157,8 @@ class TikaChildProcess implements Runnable, Checksum {
         } catch (Exception e) {
             t = e;
         } finally {
-            metadataList = new ArrayList<>(((RecursiveParserWrapper)parser).getMetadata());
-            ((RecursiveParserWrapper)parser).reset();
+            metadataList = new ArrayList<>(((RecursiveParserWrapper) parser).getMetadata());
+            ((RecursiveParserWrapper) parser).reset();
             if (t != null) {
                 if (metadataList == null) {
                     metadataList = new LinkedList<>();
