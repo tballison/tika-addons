@@ -16,6 +16,7 @@
  */
 package org.tallison.tika.parser.forkrecursive;
 
+import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 
@@ -27,16 +28,27 @@ import java.util.List;
 import java.util.Queue;
 
 
-
 public class RecursiveForkParser {
 
-    /** Serial version UID */
+    private static final Logger LOGGER = Logger.getLogger(TikaChildProcess.class);
+
+    /**
+     * Serial version UID
+     */
     private static final long serialVersionUID = -4962742892274663950L;
 
-    /** Full Java command line */
+    //after a client processes this many files, it should be shutdown
+    //and kick off a new client.  To prevent slow-growing memory leaks
+    private static int MAX_FILES_TO_PROCESS_PER_CLIENT = 10000;
+
+    /**
+     * Full Java command line
+     */
     private final List<String> java;
 
-    /** Process pool size */
+    /**
+     * Process pool size
+     */
     private int poolSize = 5;
 
     private int currentlyInUse = 0;
@@ -67,6 +79,7 @@ public class RecursiveForkParser {
      * <p>
      * Returned list is unmodifiable.
      * </p>
+     *
      * @return java command line args
      */
     public List<String> getJava() {
@@ -80,6 +93,7 @@ public class RecursiveForkParser {
     /**
      * Initialize with the full commandline to start the child processes
      * e.g. java, -Xmx1g, -cp, classPath (DO NOT include the class name)
+     *
      * @param java -full commandline minus the class name
      */
     public RecursiveForkParser(List<String> java) {
@@ -119,8 +133,17 @@ public class RecursiveForkParser {
 
             // Ping the process, and get rid of it if it's inactive
             if (client != null && !client.ping()) {
-                    client.close();
-                    client = null;
+                LOGGER.info("client not responding to ping; shutting down this client");
+                client.close();
+                client = null;
+            }
+
+            if (client != null
+                    && client.getFilesProcessed() > MAX_FILES_TO_PROCESS_PER_CLIENT) {
+                LOGGER.info("client processed more files than MAX_FILES_TO_PROCESS_PER_CLIENT; " +
+                        "shutting down this client");
+                client.close();
+                client = null;
             }
 
             if (client != null) {

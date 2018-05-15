@@ -17,18 +17,21 @@
 
 package org.tallison.tika.parser.forkrecursive;
 
+import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorInputStream;
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.serialization.JsonMetadataList;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -40,10 +43,12 @@ import static org.tallison.tika.parser.forkrecursive.TikaChildProcess.READY;
 
 class TikaClient implements AutoCloseable {
     private static final Logger LOGGER = Logger.getLogger(TikaClient.class);
+    private static final int MAX_BUFFER = Integer.MAX_VALUE;
 
     private Process childProcess;
     private DataOutputStream toChild;
     private DataInputStream fromChild;
+    private volatile int filesProcessed = 0;
 
 
     TikaClient(List<String> java) throws FatalTikaClientException {
@@ -70,17 +75,22 @@ class TikaClient implements AutoCloseable {
     }
 
     public List<Metadata> parse(Path file) throws TikaException {
-
+        filesProcessed++;
         try {
                 toChild.writeByte(TikaChildProcess.CALL);
                 toChild.flush();
-                toChild.writeUTF(file.toString());
+                toChild.writeUTF(file.toAbsolutePath().toString());
                 toChild.flush();
-                String json = null;
 
                 int n = fromChild.readByte();
+                byte[] compressedFromChild = null;
                 if (n == READY) {
-                    json = fromChild.readUTF();
+                    int length = fromChild.readInt();
+                    if (length < 0 || length > MAX_BUFFER) {
+                        throw new IOException("response too long: "+length);
+                    }
+                    compressedFromChild = new byte[length];
+                    IOUtils.readFully(fromChild, compressedFromChild, 0, length);
                 } else {
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     try {
@@ -93,7 +103,10 @@ class TikaClient implements AutoCloseable {
                     }
                     throw new FatalTikaParseException("expected ready: "+new String(bos.toByteArray(), StandardCharsets.UTF_8));
                 }
-                try (Reader reader = new StringReader(json)) {
+
+                try (Reader reader = new InputStreamReader(
+                        new FramedSnappyCompressorInputStream(
+                        new ByteArrayInputStream(compressedFromChild)), StandardCharsets.UTF_8)) {
                              //new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8)) {
                     return JsonMetadataList.fromJson(reader);
                 }
@@ -145,5 +158,9 @@ class TikaClient implements AutoCloseable {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    int getFilesProcessed() {
+        return filesProcessed;
     }
 }

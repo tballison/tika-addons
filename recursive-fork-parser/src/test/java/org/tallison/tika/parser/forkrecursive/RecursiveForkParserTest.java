@@ -20,14 +20,18 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.serialization.JsonMetadataList;
 import org.apache.tika.parser.RecursiveParserWrapper;
+import org.junit.Ignore;
 import org.tallison.tika.parser.forkrecursive.RecursiveForkParser;
 import org.tallison.tika.parser.forkrecursive.TikaChildProcess;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
@@ -93,6 +98,33 @@ public class RecursiveForkParserTest {
                     assertEquals(1, metadataList.size());
                     assertEquals("Nikolai Lobachevsky", metadataList.get(0).get("author"));
                     assertTrue(metadataList.get(0).get(RecursiveParserWrapper.TIKA_CONTENT).contains("This is tika-batch"));
+                }
+            }
+        } finally {
+            FileUtils.deleteDirectory(tmpOut.toFile());
+        }
+    }
+
+    @Test
+    public void testLong() throws Exception {
+        //there's a limit to how long an object can be with writeUTF()
+        //confirm that we aren't using that any more!
+        Path tmpOut = null;
+        try {
+            tmpOut = Files.createTempDirectory("tika-batch");
+            executeBatch(FORK_PARSER, "long", 10, tmpOut);
+            File[] files = tmpOut.toFile().listFiles();
+            assertEquals(1, files.length);
+            for (File f : files) {
+                if (f.getName().contains("test")) {
+                    assertTrue(f.getName(), f.exists());
+                    List<Metadata> metadataList = null;
+                    try (Reader r = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8)) {
+                        metadataList = JsonMetadataList.fromJson(r);
+                    }
+                    assertNotNull(metadataList);
+                    assertEquals(1, metadataList.size());
+                    assertTrue(metadataList.get(0).get(RecursiveParserWrapper.TIKA_CONTENT).contains("1234567890"));
                 }
             }
         } finally {

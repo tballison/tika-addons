@@ -16,6 +16,7 @@
  */
 package org.tallison.tika.parser.forkrecursive;
 
+import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
@@ -109,7 +110,6 @@ class TikaChildProcess implements Runnable, Checksum {
     public void run() {
         try {
             LOGGER.info("Tika child process starting up");
-            long start = System.currentTimeMillis();
             while (active) {
                 active = false;
                 Thread.sleep(timeout);
@@ -175,14 +175,18 @@ class TikaChildProcess implements Runnable, Checksum {
                 metadataList.add(0, m);
             }
         }
+
         toClient.writeByte(READY);
         toClient.flush();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Writer writer = new OutputStreamWriter(bos, StandardCharsets.UTF_8);
+        Writer writer = new OutputStreamWriter(new FramedSnappyCompressorOutputStream(bos), StandardCharsets.UTF_8);
         JsonMetadataList.toJson(metadataList, writer);
         writer.flush();
         writer.close();
-        toClient.writeUTF(new String(bos.toByteArray(), StandardCharsets.UTF_8));
+        byte[] bytes = bos.toByteArray();
+        toClient.writeInt(bytes.length);
+        toClient.flush();
+        toClient.write(bytes, 0, bytes.length);
         toClient.flush();
     }
 

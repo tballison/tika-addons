@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.tallison.tika</groupId>
         <artifactId>tika-addons-parent</artifactId>
-        <version>1.18-0.3</version>
+        <version>1.18-0.4</version>
         <relativePath>../tika-addons-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -14,6 +14,14 @@
     <artifactId>recursive-fork-parser</artifactId>
     <packaging>jar</packaging>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.16.1</version>
+        </dependency>
+
+
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
@@ -58,7 +66,6 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
