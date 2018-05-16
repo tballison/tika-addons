@@ -38,7 +38,8 @@ public class RecursiveForkParser {
     private static final long serialVersionUID = -4962742892274663950L;
 
     //after a client processes this many files, it should be shutdown
-    //and kick off a new client.  To prevent slow-growing memory leaks
+    //and a new client kicked off -- this is designed to prevent
+    //slow-growing memory leaks
     private static int MAX_FILES_TO_PROCESS_PER_CLIENT = 10000;
 
     /**

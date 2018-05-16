@@ -126,7 +126,7 @@ class TikaChildProcess implements Runnable, Checksum {
             toClient.flush();
 
             while (true) {
-                int request = fromClient.readByte();
+                int request = fromClient.read();
                 if (request == -1) {
                     break;
                 } else if (request == PING) {
@@ -137,7 +137,7 @@ class TikaChildProcess implements Runnable, Checksum {
                 } else if (request == DONE) {
                     return;
                 } else {
-                    throw new IllegalStateException("Unexpected request");
+                    throw new IllegalStateException("Unexpected request: "+request);
                 }
             }
         } catch (Throwable t) {
@@ -153,8 +153,10 @@ class TikaChildProcess implements Runnable, Checksum {
         try (TikaInputStream tis = TikaInputStream.get(path)) {
             parser.parse(tis, new DefaultHandler(), new Metadata(), new ParseContext());
         } catch (SecurityException e) {
+            LOGGER.warn(e);
             throw e;
         } catch (Exception e) {
+            LOGGER.warn("exception parsing: " + path.toAbsolutePath(), e);
             t = e;
         } finally {
             metadataList = new ArrayList<>(((RecursiveParserWrapper) parser).getMetadata());
