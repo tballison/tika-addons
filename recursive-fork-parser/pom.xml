@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.tallison.tika</groupId>
         <artifactId>tika-addons-parent</artifactId>
-        <version>1.18-0.4</version>
+        <version>1.18-0.5</version>
         <relativePath>../tika-addons-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>

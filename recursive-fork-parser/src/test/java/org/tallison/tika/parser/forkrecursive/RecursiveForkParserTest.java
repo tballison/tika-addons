@@ -71,6 +71,7 @@ public class RecursiveForkParserTest {
         command.add("-cp");
         command.add(classPath);
         command.add("-D"+TikaChildProcess.TIKA_FORKED_CHILD_TIMEOUT_PROP+"=10000");
+        command.add("-Dlog4j.configuration=child-log4j.properties");
         return command;
     }
 

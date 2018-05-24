@@ -54,6 +54,8 @@ public class RecursiveForkParser {
 
     private int currentlyInUse = 0;
 
+    private int clientsCreated = 0;
+
     private final Queue<TikaClient> pool = new LinkedList<>();
 
     /**
@@ -129,7 +131,7 @@ public class RecursiveForkParser {
             TikaClient client = pool.poll();
             // Create a new process if there's room in the pool
             if (client == null && currentlyInUse < poolSize) {
-                client = new TikaClient(java);
+                client = new TikaClient(java, clientsCreated++);
             }
 
             // Ping the process, and get rid of it if it's inactive

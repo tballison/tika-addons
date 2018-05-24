@@ -51,8 +51,10 @@ class TikaClient implements AutoCloseable {
     private volatile int filesProcessed = 0;
 
 
-    TikaClient(List<String> java) throws FatalTikaClientException {
-        startServer(Collections.unmodifiableList(java));
+    TikaClient(List<String> java, int clientCreated) throws FatalTikaClientException {
+        List<String> tmp = new ArrayList<>(java);
+        tmp.add("-DchildNum="+clientCreated);
+        startServer(Collections.unmodifiableList(tmp));
         try {
             byte b = fromChild.readByte();
             if (b != READY) {
