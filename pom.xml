@@ -38,6 +38,7 @@
     <module>pdfbox18-shaded</module>
     <module>pdfbox18-shaded-integration-tests</module>
       <module>recursive-fork-parser</module>
+      <module>eval-addons</module>
       <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
