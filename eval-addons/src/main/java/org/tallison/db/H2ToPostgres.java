@@ -13,6 +13,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.h2.util.StringUtils;
 
 /**
  * WARNING: This class will delete all tables in your 'public' schema!!!
@@ -32,8 +36,12 @@ import java.util.List;
 public class H2ToPostgres extends DBCopier {
 
     private static final int BATCH_SIZE = 100000;
-    public H2ToPostgres(Connection from, Connection to) {
+    private final String toSchema;
+    private final String pgUser;
+    public H2ToPostgres(Connection from, Connection to, String toSchema, String pgUser) {
         super(from, to);
+        this.toSchema = toSchema;
+        this.pgUser = pgUser;
     }
 
     @Override
@@ -53,8 +61,15 @@ public class H2ToPostgres extends DBCopier {
 
         Connection from = DriverManager.getConnection(args[0]);
         Connection to = DriverManager.getConnection(args[1]);
-
-        H2ToPostgres copier = new H2ToPostgres(from, to);
+        String toSchema = (args.length > 2) ? args[2] : "";
+        String pgUser = null;//necessary if creating a new schema
+        if (args.length > 2) {
+            Matcher m = Pattern.compile("user=([^&]+)").matcher(args[1]);
+            if (m.find()) {
+                pgUser = m.group(1);
+            }
+        }
+        H2ToPostgres copier = new H2ToPostgres(from, to, toSchema, pgUser);
         copier.execute();
         from.close();
         to.close();
@@ -63,7 +78,7 @@ public class H2ToPostgres extends DBCopier {
 
     private void execute() throws SQLException {
         to.setAutoCommit(false);
-        deleteTablesInTo();
+        //deleteTablesInTo();
         to.commit();
         for (String table : getTables()) {
             createTable(table);
@@ -73,7 +88,7 @@ public class H2ToPostgres extends DBCopier {
         }
         to.commit();
     }
-
+/*
     private void deleteTablesInTo() throws SQLException {
         List<String> tables = new ArrayList<>();
         String sql = "SELECT tablename FROM pg_catalog.pg_tables where schemaname='public'";
@@ -92,7 +107,7 @@ public class H2ToPostgres extends DBCopier {
             }
         }
     }
-
+*/
     private void insert(String table) throws SQLException {
 
         PreparedStatement insert = createInsert(table);
@@ -238,7 +253,7 @@ public class H2ToPostgres extends DBCopier {
         try (Statement st = from.createStatement()) {
             try (ResultSet rs = st.executeQuery(sql)) {
                 StringBuilder sb = new StringBuilder();
-                sb.append("INSERT INTO ").append(table).append("(");
+                sb.append("INSERT INTO ").append(getSchemaTable(table)).append("(");
                 StringBuilder q = new StringBuilder();
                 q.append("(");
                 for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
@@ -259,16 +274,20 @@ public class H2ToPostgres extends DBCopier {
 
     private void createTable(String table) throws SQLException {
         try(Statement st = to.createStatement()) {
-            st.execute("DROP TABLE IF EXISTS "+table);
+            st.execute("DROP TABLE IF EXISTS "+getSchemaTable(table));
+            if (! StringUtils.isNullOrEmpty(toSchema)) {
+                st.execute("CREATE SCHEMA IF NOT EXISTS " + toSchema + " AUTHORIZATION "+pgUser);
+            }
         }
+
         String primaryKeyColumn = getPrimaryKey(table);
 
         String select = "SELECT * FROM "+table+" LIMIT 1";
         StringBuilder sb = new StringBuilder();
-        sb.append("CREATE TABLE ").append(table).append("(");
+        sb.append("CREATE TABLE ").append(getSchemaTable(table)).append("(");
         try (Statement st = from.createStatement()) {
             try (ResultSet resultSet = st.executeQuery(select)) {
-                System.out.println("TABLE: " + table);
+                System.out.println("TABLE: " + getSchemaTable(table));
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 for (int i = 1; i <= metaData.getColumnCount(); i++) {
                     sb.append(metaData.getColumnName(i)).append(" ");
@@ -294,6 +313,13 @@ public class H2ToPostgres extends DBCopier {
             System.out.println(createTableSQL);
             st.execute(createTableSQL);
         }
+    }
+
+    private String getSchemaTable(String table) {
+        if (!StringUtils.isNullOrEmpty(toSchema)) {
+            return toSchema+"."+table;
+        }
+        return table;
     }
 
     private String getColumnTypeName(int type, String columnName) {
