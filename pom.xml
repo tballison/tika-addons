@@ -41,6 +41,7 @@
       <module>eval-addons</module>
       <module>embedded-extractor</module>
       <module>zip-dumper</module>
+      <module>lang-id</module>
       <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
