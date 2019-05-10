@@ -28,7 +28,7 @@ import org.tallison.langid.yalder.YalderDetector;
 
 public class LangDetectRunner {
 
-    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\d+)_0_(\\d+)").matcher("");
+    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\d+)_0\\.(\\d+)_(\\d+)").matcher("");
     //detector, length, processing time
     Map<String, Map<Integer, List<Long>>> processingTimes = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.##");
@@ -43,8 +43,8 @@ public class LangDetectRunner {
 
             LangDetector[] detectors = new LangDetector[]{
                     new YalderDetector(),
-                    new OptimaizeLangDetector(),
-                    new OpenNLPLangDetector(),
+                    //new OptimaizeLangDetector(),
+                    //new OpenNLPLangDetector(),
             };
             LangDetectRunner runner = new LangDetectRunner(writer);
             List<Result> results = new ArrayList<>();
@@ -66,6 +66,7 @@ public class LangDetectRunner {
                 "hit",
                 "length",
                 "noise",
+                "id",
                 "lang1",
                 "lang1Conf",
                 "lang2",
@@ -75,7 +76,26 @@ public class LangDetectRunner {
 
     private void execute(Path sampleDir, LangDetector detector, List<Result> results) {
         for (File subdir : sampleDir.toFile().listFiles()) {
+            System.err.println(subdir);
             for (File sampleFile : subdir.listFiles()) {
+                if (sampleFile.getName().contains("100000")) {
+                    continue;
+                }
+                if (sampleFile.getName().contains("10000")) {
+                    continue;
+                }
+                if (sampleFile.getName().contains("5000")) {
+                    continue;
+                }
+                if (sampleFile.getName().contains("500")) {
+                    continue;
+                }
+                if (sampleFile.getName().contains("1000")) {
+                    continue;
+                }
+                if (sampleFile.getName().contains("200")) {
+                    continue;
+                }
                 try {
                     results.add(processSample(sampleFile, detector));
                 } catch (Exception e) {
@@ -114,14 +134,37 @@ public class LangDetectRunner {
 
         List<Integer> lengths = new ArrayList<>(lengthSet);
         Collections.sort(lengths);
-        System.out.println("Accuracy Across Languages -- Detector/Length/Noise");
+
+        System.out.println("Accuracy Per Languages -- Detector/Length/Noise/Language");
         for (String d : detectors) {
             System.out.println("DETECTOR: " + d);
             for (Integer len : lengths) {
                 System.out.println("\tLENGTH: " + len);
                 for (String n : noise) {
                     System.out.println("\t\tNOISE: " + denoise(n));
-                    double accuracy = calcAccuracy(d, len, n, results);
+                    for (String lang : langs) {
+                        double accuracy = calcAccuracy(d, len, n, lang, results);
+                        if (accuracy >= 0.0) {
+                            System.out.println(
+                                    StringUtils.joinWith(" ", "\t\t\t",
+                                            d, "len=" + len, "noise=" + denoise(n), "lang=" + lang,
+                                            "accuracy=" + df.format(accuracy))
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        System.out.println("Accuracy Across Languages -- Detector/Length/Noise");
+        for (String d : detectors) {
+            System.out.println("DETECTOR: " + d);
+            for (Integer len : lengths) {
+                System.out.println("\tLENGTH: " + len);
+                for (String n : noise) {
+                    double accuracy = calcOverallAccuracy(d, len, n, results);
                     System.out.println(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     d, "len=" + len, "noise=" + denoise(n),
@@ -138,7 +181,6 @@ public class LangDetectRunner {
             for (Integer len : lengths) {
                 System.out.println("\tLENGTH: " + len);
                 for (String n : noise) {
-                    System.out.println("\t\tNOISE: " + denoise(n));
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
                     System.out.println(
@@ -157,8 +199,7 @@ public class LangDetectRunner {
             for (String n : noise) {
                 System.out.println("\tNOISE: " + denoise(n));
                 for (Integer len : lengths) {
-                    System.out.println("\t\tLENGTH: " + len);
-                    double accuracy = calcAccuracy(d, len, n, results);
+                    double accuracy = calcOverallAccuracy(d, len, n, results);
                     System.out.println(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     d, "len=" + len, "noise=" + denoise(n),
@@ -175,7 +216,6 @@ public class LangDetectRunner {
             for (String n : noise) {
                 System.out.println("\tNOISE: " + denoise(n));
                 for (Integer len : lengths) {
-                    System.out.println("\t\tLENGTH: " + len);
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
                     System.out.println(
@@ -194,8 +234,7 @@ public class LangDetectRunner {
             for (String n : noise) {
                 System.out.println("\tNOISE: " + denoise(n));
                 for (String d : detectors) {
-                    System.out.println("\t\tDETECTOR: " + d);
-                    double accuracy = calcAccuracy(d, len, n, results);
+                    double accuracy = calcOverallAccuracy(d, len, n, results);
                     System.out.println(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     d, "len=" + len, "noise=" + denoise(n),
@@ -212,7 +251,6 @@ public class LangDetectRunner {
             for (String n : noise) {
                 System.out.println("\tNOISE: " + denoise(n));
                 for (String d : detectors) {
-                    System.out.println("\t\tDETECTOR: " + d);
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
                     System.out.println(
@@ -274,7 +312,40 @@ public class LangDetectRunner {
         return median.evaluate(dv);
     }
 
-    private double calcAccuracy(String d, int len, String noise, List<Result> results) {
+    private double calcAccuracy(String d, int len, String noise, String lang, List<Result> results) {
+        //group by...the stupid way
+        int denom = 0;
+        int numerator = 0;
+        for (Result r : results) {
+
+            if (!r.detector.equals(d)) {
+                continue;
+            }
+            if (r.length != len) {
+                continue;
+            }
+            if (!r.noise.equals(noise)) {
+                continue;
+            }
+            if (!r.expectedlang.equals(lang)) {
+                continue;
+            }
+            if (!r.supported) {
+                continue;
+            }
+            if (r.hit) {
+                numerator++;
+            }
+            denom++;
+        }
+        if (denom == 0) {
+            return -1.0;
+        }
+        return (double) numerator / (double) denom;
+    }
+
+
+    private double calcOverallAccuracy(String d, int len, String noise, List<Result> results) {
         //group by...the stupid way
         int denom = 0;
         int numerator = 0;
@@ -321,6 +392,7 @@ public class LangDetectRunner {
         String lang1Conf = "";
         String lang2 = "";
         String lang2Conf = "";
+        int id = -1;
         double confidence = -1.0;
         m.reset(sampleFile.getName());
         if (m.find()) {
@@ -328,6 +400,7 @@ public class LangDetectRunner {
             expectedLang = m.group(2);
             length = Integer.parseInt(m.group(3));
             noise = m.group(4);
+            id = Integer.parseInt(m.group(5));
         } else {
             throw new IllegalArgumentException(sampleFile.getName());
         }
@@ -367,6 +440,7 @@ public class LangDetectRunner {
                 hit,
                 length,
                 noise,
+                id,
                 lang1,
                 lang1Conf,
                 lang2,
@@ -375,11 +449,11 @@ public class LangDetectRunner {
         ) + "\n");
         if (hit.equals("hit")) {
             return new Result(detector.getClass().getSimpleName(),
-                    length, noise, expectedLang, lang1, confidence,
+                    length, noise, id, expectedLang, lang1, confidence,
                     detector.getSupportedLangs().contains(expectedLang), true);
         }
         return new Result(detector.getClass().getSimpleName(),
-                length, noise, expectedLang, lang1, confidence,
+                length, noise, id, expectedLang, lang1, confidence,
                 detector.getSupportedLangs().contains(expectedLang),
                 false);
     }
@@ -401,18 +475,20 @@ public class LangDetectRunner {
         String detector;
         int length;
         String noise;
+        int id;
         double confidence;
         String expectedlang;
         String detectedlang;
         boolean supported;
         boolean hit;
 
-        public Result(String detector, int length, String noise,
+        public Result(String detector, int length, String noise, int id,
                       String expectedlang, String detectedlang, double confidence,
                       boolean supported, boolean hit) {
             this.detector = detector;
             this.length = length;
             this.noise = noise;
+            this.id = id;
             this.expectedlang = expectedlang;
             this.detectedlang = detectedlang;
             this.confidence = confidence;
@@ -424,8 +500,9 @@ public class LangDetectRunner {
         public String toString() {
             return "Result{" +
                     "detector='" + detector + '\'' +
-                    ", length='" + length + '\'' +
+                    ", length=" + length +
                     ", noise='" + noise + '\'' +
+                    ", id=" + id +
                     ", confidence=" + confidence +
                     ", expectedlang='" + expectedlang + '\'' +
                     ", detectedlang='" + detectedlang + '\'' +

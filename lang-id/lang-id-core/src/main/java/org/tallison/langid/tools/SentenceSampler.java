@@ -23,14 +23,15 @@ public class SentenceSampler {
         SentenceSampler sampler = new SentenceSampler();
         int[] lengths = new int[]{50, 100, 200, 500, 1000, 10000, 100000};
         double[] noiseLevels = new double[]{0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.9};
-        sampler.sample(leipzig, sampled, lengths, noiseLevels);
+        int numSamples = 50;
+        sampler.sample(leipzig, sampled, numSamples, lengths, noiseLevels);
     }
 
-    private void sample(Path leipzig, Path sampled, int[] lens,
+    private void sample(Path leipzig, Path sampled, int numSamples, int[] lens,
                         double[] noiseLevels) throws IOException {
         for (File f : leipzig.toFile().listFiles()) {
             try {
-                processFile(f, sampled, lens, noiseLevels);
+                processFile(f, sampled, numSamples, lens, noiseLevels);
             } catch (Exception e) {
                 e.printStackTrace();;
             }
@@ -40,7 +41,8 @@ public class SentenceSampler {
 
     private void dumpNumbers(Path sampled, int[] lens, double[] noiseLevels) throws IOException {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 200000; i++) {
+        int maxLen = getMax(lens);
+        for (int i = 0; i < maxLen; i++) {
             if (r.nextFloat() < 0.01) {
                 sb.append(",");
             } else if (r.nextFloat() < 0.02) {
@@ -49,27 +51,44 @@ public class SentenceSampler {
                 sb.append(r.nextInt());
             }
         }
-        dumpAll("num_stuff", sb, sampled, lens, noiseLevels);
+        dumpAll("num_stuff", sb, sampled, lens, noiseLevels, 0);
     }
 
-    private void processFile(File f, Path sampledDir, int[] lens, double[] noiseLevels) throws IOException {
+    private static int getMax(int[] lens) {
+        int maxLen = lens[0];
+        for (int i : lens) {
+            if (i > maxLen) {
+                maxLen = i;
+            }
+        }
+        return maxLen;
+    }
+
+    private void processFile(File f, Path sampledDir, int numSamples,
+                             int[] lens, double[] noiseLevels) throws IOException {
         if (f.isDirectory()) {
             return;
         }
         List<String> rows = FileUtils.readLines(f, StandardCharsets.UTF_8);
-        Collections.shuffle(rows);
-        StringBuilder bigString = new StringBuilder();
-        for (String r : rows) {
-            //trim sent number
-            int i = r.indexOf("\t");
-            bigString.append(r.substring(i+1)).append(" ");
+        for (int i = 0; i < numSamples; i++) {
+            Collections.shuffle(rows);
+
+            StringBuilder bigString = new StringBuilder();
+            int maxLen = getMax(lens);
+            for (String r : rows) {
+                //trim sent number
+                int index = r.indexOf("\t");
+                bigString.append(r.substring(index + 1)).append(" ");
+                if (bigString.length() > maxLen) {
+                    break;
+                }
+            }
+            dumpAll(f.getName(), bigString, sampledDir, lens, noiseLevels, i);
         }
-        rows.clear();
-        dumpAll(f.getName(), bigString, sampledDir, lens, noiseLevels);
     }
 
     private void dumpAll(String fName, StringBuilder bigString, Path sampledDir, int[] lens,
-                         double[] noiseLevels)  throws IOException {
+                         double[] noiseLevels, int id)  throws IOException {
         for (int len : lens) {
             for (double noise : noiseLevels) {
 
@@ -79,7 +98,8 @@ public class SentenceSampler {
                         sample.appendCodePoint(r.nextDouble() < noise ? randChar() : c)
                 );
 
-                String lenNoiseString = len + "_" + Double.toString(noise).replaceAll("\\.", "_");
+                String lenNoiseString = len + "_" + Double.toString(noise);
+
                 Path sampleSubDir = sampledDir.resolve(lenNoiseString);
                 Files.createDirectories(sampleSubDir);
 
@@ -90,7 +110,8 @@ public class SentenceSampler {
                 } else {
                     throw new IllegalArgumentException(fName);
                 }
-                Path sampleFile = sampleSubDir.resolve(lang + "_" + lenNoiseString + ".txt");
+                Path sampleFile = sampleSubDir.resolve(lang + "_" + lenNoiseString +
+                        "_"+id+".txt");
                 FileUtils.write(sampleFile.toFile(), sample.toString(), StandardCharsets.UTF_8);
             }
         }
