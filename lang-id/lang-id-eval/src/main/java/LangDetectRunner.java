@@ -1,5 +1,6 @@
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -7,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -28,7 +30,7 @@ import org.tallison.langid.yalder.YalderDetector;
 
 public class LangDetectRunner {
 
-    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\d+)_0\\.(\\d+)_(\\d+)").matcher("");
+    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\w+)_(\\d+)_0\\.(\\d+)_(\\d+)").matcher("");
     //detector, length, processing time
     Map<String, Map<Integer, List<Long>>> processingTimes = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.##");
@@ -39,19 +41,21 @@ public class LangDetectRunner {
 
     public static void main(String[] args) throws Exception {
         Path sampleDir = Paths.get(args[0]);
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(args[1]), StandardCharsets.UTF_8)) {
+        try (
+                BufferedWriter fullTableWriter = Files.newBufferedWriter(Paths.get(args[1]),
+                        StandardCharsets.UTF_8);
+                BufferedWriter aggregatedResultsWriter = Files.newBufferedWriter(Paths.get(args[2]),
+                        StandardCharsets.UTF_8)) {
 
             LangDetector[] detectors = new LangDetector[]{
                     new YalderDetector(),
-                    //new OptimaizeLangDetector(),
-                    //new OpenNLPLangDetector(),
+                    new OptimaizeLangDetector(),
+                    new OpenNLPLangDetector()
             };
-            LangDetectRunner runner = new LangDetectRunner(writer);
+            LangDetectRunner runner = new LangDetectRunner(fullTableWriter);
             List<Result> results = new ArrayList<>();
-            for (LangDetector detector : detectors) {
-                runner.execute(sampleDir, detector, results);
-            }
-            runner.dumpResults(detectors, results);
+            runner.execute(sampleDir, detectors, results);
+            runner.dumpResults(detectors, results, aggregatedResultsWriter);
         }
 
     }
@@ -63,6 +67,7 @@ public class LangDetectRunner {
                 "sampleFile",
                 "fullLang",
                 "expectedLang",
+                "src",
                 "hit",
                 "length",
                 "noise",
@@ -74,50 +79,47 @@ public class LangDetectRunner {
                 "elapsed(ms)") + "\n");
     }
 
-    private void execute(Path sampleDir, LangDetector detector, List<Result> results) {
+    private void execute(Path sampleDir, LangDetector[] detectorArr, List<Result> results) throws IOException {
+        List<LangDetector> detectors = Arrays.asList(detectorArr);
         for (File subdir : sampleDir.toFile().listFiles()) {
-            System.err.println(subdir);
-            for (File sampleFile : subdir.listFiles()) {
-                if (sampleFile.getName().contains("100000")) {
-                    continue;
-                }
-                if (sampleFile.getName().contains("10000")) {
-                    continue;
-                }
-                if (sampleFile.getName().contains("5000")) {
-                    continue;
-                }
-                if (sampleFile.getName().contains("500")) {
-                    continue;
-                }
-                if (sampleFile.getName().contains("1000")) {
-                    continue;
-                }
-                if (sampleFile.getName().contains("200")) {
-                    continue;
-                }
-                try {
-                    results.add(processSample(sampleFile, detector));
-                } catch (Exception e) {
-                    e.printStackTrace();
+            for (File langdir : subdir.listFiles()) {
+                for (File sampleFile : langdir.listFiles()) {
+                    System.err.println("processing: " +langdir + " : "+ sampleFile);
+                    String string = FileUtils.readFileToString(sampleFile, StandardCharsets.UTF_8);
+                    for (LangDetector detector : detectors) {
+                        try {
+                            results.add(processSample(sampleFile, string, detector));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    Collections.shuffle(detectors);
                 }
             }
         }
     }
 
-    private void dumpResults(LangDetector[] detectorArr, List<Result> results) {
+    private void dumpResults(LangDetector[] detectorArr,
+                             List<Result> results, BufferedWriter writer) throws IOException {
         Set<Integer> lengthSet = new LinkedHashSet<>();
         Set<String> noise = new LinkedHashSet<>();
         Set<String> detectors = new LinkedHashSet<>();
         Set<String> langs = new LinkedHashSet<>();
+        int maxDetectorNameLength = -1;
         for (Result r : results) {
             lengthSet.add(r.length);
             noise.add(r.noise);
             detectors.add(r.detector);
             langs.add(r.expectedlang);
+            if (r.detector.length() > maxDetectorNameLength) {
+                maxDetectorNameLength = r.detector.length();
+            }
         }
-
-        System.out.println("\nCovered Languages");
+        maxDetectorNameLength += 5;
+        List<Integer> lengths = new ArrayList<>(lengthSet);
+        Collections.sort(lengths);
+        writer.write("\nCovered Languages");
+        writer.newLine();
         for (LangDetector d : detectorArr) {
             int covered = 0;
             for (String l : langs) {
@@ -125,156 +127,213 @@ public class LangDetectRunner {
                     covered++;
                 }
             }
-            System.out.println("DETECTOR: " + d.getClass().getSimpleName() +
-                    ("(" + covered + " out of " + langs.size() + ")"));
+            //substract 1 for "num"
+            writer.write("DETECTOR: " + d.getClass().getSimpleName() +
+                    ("(" + covered + " out of " + (langs.size()-1) + ")"));
+            writer.newLine();
             for (String l : langs) {
-                System.out.println("\t" + l + "\t" + d.getSupportedLangs().contains(l));
+                writer.write("\t" + l + "\t" + d.getSupportedLangs().contains(l));
+                writer.newLine();
+            }
+        }
+        writer.newLine();
+        writer.write("\nTime in Millis");
+        writer.newLine();
+        writer.write(
+                "Detector\tLength\tMillis\tAvg(ms)\tStdev"
+        );
+        writer.newLine();
+        for (String d : detectors) {
+            for (Integer length : lengths) {
+                List<Long> millis = processingTimes.get(d).get(length);
+                dump(d, length, millis, writer);
             }
         }
 
-        List<Integer> lengths = new ArrayList<>(lengthSet);
-        Collections.sort(lengths);
+        writer.newLine();
 
-        System.out.println("Accuracy Per Languages -- Detector/Length/Noise/Language");
+        writer.write("\nAccuracy Per Languages -- Detector/Length/Noise/Language");
+        writer.newLine();
         for (String d : detectors) {
-            System.out.println("DETECTOR: " + d);
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
             for (Integer len : lengths) {
-                System.out.println("\tLENGTH: " + len);
+                writer.write("\tLENGTH: " + len);
+                writer.newLine();
                 for (String n : noise) {
-                    System.out.println("\t\tNOISE: " + denoise(n));
+                    writer.write("\t\tNOISE: " + denoise(n));
+                    writer.newLine();
                     for (String lang : langs) {
                         double accuracy = calcAccuracy(d, len, n, lang, results);
                         if (accuracy >= 0.0) {
-                            System.out.println(
+                            writer.write(
                                     StringUtils.joinWith(" ", "\t\t\t",
                                             d, "len=" + len, "noise=" + denoise(n), "lang=" + lang,
                                             "accuracy=" + df.format(accuracy))
                             );
+                            writer.newLine();
                         }
                     }
                 }
             }
         }
 
+        writer.newLine();
+        writer.write("Accuracy Per Languages -- Length/Noise/Language/Detector");
+        writer.newLine();
+        for (Integer len : lengths) {
+            writer.write("\tLENGTH: " + len);
+            writer.newLine();
+            for (String n : noise) {
+                writer.write("\t\tNOISE: " + denoise(n));
+                writer.newLine();
+                for (String lang : langs) {
+                    for (String d : detectors) {
+                        double accuracy = calcAccuracy(d, len, n, lang, results);
+                        if (accuracy >= 0.0) {
+                            writer.write(
+                                    StringUtils.joinWith(" ", "\t\t\t",
+                                            StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n), "lang=" + lang,
+                                            "accuracy=" + df.format(accuracy))
+                            );
+                            writer.newLine();
+                        }
+                    }
+                }
+            }
+        }
 
-
-        System.out.println("Accuracy Across Languages -- Detector/Length/Noise");
+        writer.newLine();
+        writer.write("Accuracy Across Languages -- Detector/Length/Noise");
+        writer.newLine();
         for (String d : detectors) {
-            System.out.println("DETECTOR: " + d);
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
             for (Integer len : lengths) {
-                System.out.println("\tLENGTH: " + len);
+                writer.write("\tLENGTH: " + len);
+                writer.newLine();
                 for (String n : noise) {
                     double accuracy = calcOverallAccuracy(d, len, n, results);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
                                     "accuracy=" + df.format(accuracy))
                     );
+                    writer.newLine();
                 }
             }
         }
-
-        System.out.println("\n");
-        System.out.println("CONFIDENCE SCORES -- Detector/Length/Noise");
+        writer.newLine();
+        writer.write("CONFIDENCE SCORES -- Detector/Length/Noise");
+        writer.newLine();
         for (String d : detectors) {
-            System.out.println("DETECTOR: " + d);
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
             for (Integer len : lengths) {
-                System.out.println("\tLENGTH: " + len);
+                writer.write("\tLENGTH: " + len);
+                writer.newLine();
                 for (String n : noise) {
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
-                                    "mean=" + df.format(sm.getMean()),
-                                    "stdev=" + df.format(sm.getStandardDeviation()),
-                                    "median=" + df.format(median)
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
+                                    "confidence_mean=" + df.format(sm.getMean()),
+                                    "confidence_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "confidence_median=" + df.format(median)
                             ));
+                    writer.newLine();
                 }
             }
         }
-        System.out.println("Accuracy Across Languages -- Detector/Noise/Length");
+        writer.newLine();
+        writer.write("Accuracy Across Languages -- Detector/Noise/Length");
+        writer.newLine();
         for (String d : detectors) {
-            System.out.println("DETECTOR: " + d);
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
             for (String n : noise) {
-                System.out.println("\tNOISE: " + denoise(n));
+                writer.write("\tNOISE: " + denoise(n));
+                writer.newLine();
                 for (Integer len : lengths) {
                     double accuracy = calcOverallAccuracy(d, len, n, results);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
                                     "accuracy=" + df.format(accuracy))
                     );
+                    writer.newLine();
                 }
             }
         }
 
-        System.out.println("\n");
-        System.out.println("CONFIDENCE SCORES -- Detector/Noise/Length");
+        writer.newLine();
+        writer.write("CONFIDENCE SCORES -- Detector/Noise/Length");
+        writer.newLine();
         for (String d : detectors) {
-            System.out.println("DETECTOR: " + d);
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
             for (String n : noise) {
-                System.out.println("\tNOISE: " + denoise(n));
+                writer.write("\tNOISE: " + denoise(n));
+                writer.newLine();
                 for (Integer len : lengths) {
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
-                                    "mean=" + df.format(sm.getMean()),
-                                    "stdev=" + df.format(sm.getStandardDeviation()),
-                                    "median=" + df.format(median)
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
+                                    "confidence_mean=" + df.format(sm.getMean()),
+                                    "confidence_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "confidence_median=" + df.format(median)
                             ));
+                    writer.newLine();
                 }
             }
         }
-        System.out.println("Accuracy Across Languages -- Length/Noise/Detector");
+        writer.newLine();
+        writer.write("Accuracy Across Languages -- Length/Noise/Detector");
+        writer.newLine();
         for (Integer len : lengths) {
-            System.out.println("LENGTH: " + len);
+            writer.write("LENGTH: " + len);
+            writer.newLine();
             for (String n : noise) {
-                System.out.println("\tNOISE: " + denoise(n));
+                writer.write("\tNOISE: " + denoise(n));
+                writer.newLine();
                 for (String d : detectors) {
                     double accuracy = calcOverallAccuracy(d, len, n, results);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
                                     "accuracy=" + df.format(accuracy))
                     );
+                    writer.newLine();
                 }
             }
         }
 
-        System.out.println("\n");
-        System.out.println("CONFIDENCE SCORES -- Length/Noise/Detector");
+        writer.newLine();
+        writer.write("CONFIDENCE SCORES -- Length/Noise/Detector");
+        writer.newLine();
         for (Integer len : lengths) {
-            System.out.println("LENGTH: " + len);
+            writer.write("LENGTH: " + len);
+            writer.newLine();
             for (String n : noise) {
-                System.out.println("\tNOISE: " + denoise(n));
+                writer.write("\tNOISE: " + denoise(n));
+                writer.newLine();
                 for (String d : detectors) {
                     SummaryStatistics sm = new SummaryStatistics();
                     double median = calcConfidence(d, len, n, results, sm);
-                    System.out.println(
+                    writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
-                                    d, "len=" + len, "noise=" + denoise(n),
-                                    "mean=" + df.format(sm.getMean()),
-                                    "stdev=" + df.format(sm.getStandardDeviation()),
-                                    "median=" + df.format(median)
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
+                                    "confidence_mean=" + df.format(sm.getMean()),
+                                    "confidence_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "confidence_median=" + df.format(median)
                             ));
+                    writer.newLine();
                 }
             }
         }
-
-        System.out.println("\nTime in Millis");
-        System.out.println(
-                "Detector\tLength\tMillis\tAvg(ms)\tStdev"
-        );
-        for (String d : detectors) {
-            for (Integer length : lengths) {
-                List<Long> millis = processingTimes.get(d).get(length);
-                dump(d, length, millis);
-            }
-        }
-
     }
 
     private static String denoise(String n) {
@@ -371,19 +430,20 @@ public class LangDetectRunner {
         return (double) numerator / (double) denom;
     }
 
-    private void dump(String detectorName, Integer length, List<Long> longs) {
+    private void dump(String detectorName, Integer length, List<Long> longs, BufferedWriter writer) throws IOException {
         SummaryStatistics summaryStatistics = new SummaryStatistics();
         for (Long lng : longs) {
             summaryStatistics.addValue(lng);
         }
-        System.out.println(detectorName + "\t" + length +
+        writer.write(detectorName + "\t" + length +
                 "\t" + (long) summaryStatistics.getSum() + "\t" +
                 df.format(summaryStatistics.getMean()) + "\t" +
                 df.format(summaryStatistics.getStandardDeviation())
         );
+        writer.newLine();
     }
 
-    private Result processSample(File sampleFile, LangDetector detector) throws Exception {
+    private Result processSample(File sampleFile, String string, LangDetector detector) throws Exception {
         String fullLang = "";
         String expectedLang = "";
         int length = -1;
@@ -393,19 +453,21 @@ public class LangDetectRunner {
         String lang2 = "";
         String lang2Conf = "";
         int id = -1;
+        String src = "";
         double confidence = -1.0;
         m.reset(sampleFile.getName());
         if (m.find()) {
             fullLang = m.group(1);
             expectedLang = m.group(2);
-            length = Integer.parseInt(m.group(3));
-            noise = m.group(4);
-            id = Integer.parseInt(m.group(5));
+            src = m.group(3);
+            length = Integer.parseInt(m.group(4));
+            noise = m.group(5);
+            id = Integer.parseInt(m.group(6));
         } else {
             throw new IllegalArgumentException(sampleFile.getName());
         }
         long start = System.currentTimeMillis();
-        List<LangDetectResult> results = detector.detect(FileUtils.readFileToString(sampleFile, StandardCharsets.UTF_8));
+        List<LangDetectResult> results = detector.detect(string);
         long elapsed = System.currentTimeMillis() - start;
         if (results.size() > 0) {
             LangDetectResult r = results.get(0);
@@ -437,9 +499,10 @@ public class LangDetectRunner {
                 sampleFile.getName(),
                 fullLang,
                 expectedLang,
+                src,
                 hit,
                 length,
-                noise,
+                denoise(noise),
                 id,
                 lang1,
                 lang1Conf,

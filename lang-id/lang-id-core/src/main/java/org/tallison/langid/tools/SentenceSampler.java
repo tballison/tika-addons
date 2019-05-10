@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 
 public class SentenceSampler {
-    Matcher langMatcher = Pattern.compile("^([-a-z]+)_").matcher("");
+    Matcher langMatcher = Pattern.compile("^([-a-z]+)_([a-z]+)").matcher("");
     Random r = new Random();
     public static void main(String[] args) throws IOException {
         Path leipzig = Paths.get(args[0]);
@@ -93,7 +93,7 @@ public class SentenceSampler {
             for (double noise : noiseLevels) {
 
                 StringBuilder sample = new StringBuilder();
-                int i = 0;
+
                 bigString.codePoints().limit(len).forEach(c ->
                         sample.appendCodePoint(r.nextDouble() < noise ? randChar() : c)
                 );
@@ -101,17 +101,21 @@ public class SentenceSampler {
                 String lenNoiseString = len + "_" + Double.toString(noise);
 
                 Path sampleSubDir = sampledDir.resolve(lenNoiseString);
-                Files.createDirectories(sampleSubDir);
 
                 langMatcher.reset(fName);
                 String lang = null;
+                String src = null;
                 if (langMatcher.find()) {
                     lang = langMatcher.group(1);
+                    src = langMatcher.group(2);
                 } else {
                     throw new IllegalArgumentException(fName);
                 }
-                Path sampleFile = sampleSubDir.resolve(lang + "_" + lenNoiseString +
+                Path sampleFile = sampleSubDir.resolve(lang + "/"+lang+"_" + src+"_"+lenNoiseString +
                         "_"+id+".txt");
+                if (! Files.isDirectory(sampleFile.getParent())) {
+                    Files.createDirectories(sampleFile.getParent());
+                }
                 FileUtils.write(sampleFile.toFile(), sample.toString(), StandardCharsets.UTF_8);
             }
         }
