@@ -17,13 +17,23 @@ import org.apache.commons.io.FileUtils;
 public class SentenceSampler {
     Matcher langMatcher = Pattern.compile("^([-a-z]+)_([a-z]+)").matcher("");
     Random r = new Random();
+    enum RAND_MODE {
+        BTWN_0_1000000,
+        PLUS_MINUS_1
+    }
+    private final RAND_MODE randMode;
+    public SentenceSampler(RAND_MODE randMode) {
+        this.randMode = randMode;
+    }
     public static void main(String[] args) throws IOException {
         Path leipzig = Paths.get(args[0]);
         Path sampled = Paths.get(args[1]);
-        SentenceSampler sampler = new SentenceSampler();
+        RAND_MODE randMode = RAND_MODE.PLUS_MINUS_1;
+        SentenceSampler sampler = new SentenceSampler(randMode);
         int[] lengths = new int[]{50, 100, 200, 500, 1000, 10000, 100000};
         double[] noiseLevels = new double[]{0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.9};
         int numSamples = 50;
+
         sampler.sample(leipzig, sampled, numSamples, lengths, noiseLevels);
     }
 
@@ -95,7 +105,7 @@ public class SentenceSampler {
                 StringBuilder sample = new StringBuilder();
 
                 bigString.codePoints().limit(len).forEach(c ->
-                        sample.appendCodePoint(r.nextDouble() < noise ? randChar() : c)
+                        sample.appendCodePoint(r.nextDouble() < noise ? randChar(c) : c)
                 );
 
                 String lenNoiseString = len + "_" + Double.toString(noise);
@@ -122,7 +132,17 @@ public class SentenceSampler {
 
     }
 
-    private int randChar() {
-        return r.nextInt(1000000);
+    private int randChar(int c) {
+        if (randMode.equals(RAND_MODE.BTWN_0_1000000)) {
+            return r.nextInt(1000000);
+        } else if (randMode.equals(RAND_MODE.PLUS_MINUS_1)) {
+            if (r.nextFloat() < 0.5) {
+                return c-1;
+            } else {
+                return c+1;
+            }
+        } else {
+            throw new IllegalArgumentException("Don't yet support: "+randMode);
+        }
     }
 }
