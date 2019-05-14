@@ -1,3 +1,8 @@
+package org.tallison.langid;
+
+import static java.util.Map.Entry.comparingByValue;
+import static java.util.stream.Collectors.toMap;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +26,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.tallison.langid.LangDetectResult;
@@ -34,6 +41,7 @@ public class LangDetectRunner {
     //detector, length, processing time
     Map<String, Map<Integer, List<Long>>> processingTimes = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.##");
+    DecimalFormat dfPercent = new DecimalFormat("0.00%");
     DecimalFormat confidenceFormat = new DecimalFormat("#.####");
 
 
@@ -213,12 +221,15 @@ public class LangDetectRunner {
                 writer.write("\tLENGTH: " + len);
                 writer.newLine();
                 for (String n : noise) {
-                    double accuracy = calcOverallAccuracy(d, len, n, results);
+                    SummaryStatistics sm = new SummaryStatistics();
+                    double median = calcOverallAccuracy(d, len, n, results, sm);
                     writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
-                                    "accuracy=" + df.format(accuracy))
-                    );
+                                    "accuracy_mean=" + df.format(sm.getMean()),
+                                    "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "accuracy_median=" + df.format(median)
+                    ));
                     writer.newLine();
                 }
             }
@@ -256,12 +267,15 @@ public class LangDetectRunner {
                 writer.write("\tNOISE: " + denoise(n));
                 writer.newLine();
                 for (Integer len : lengths) {
-                    double accuracy = calcOverallAccuracy(d, len, n, results);
+                    SummaryStatistics sm = new SummaryStatistics();
+                    double median = calcOverallAccuracy(d, len, n, results, sm);
                     writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
-                                    "accuracy=" + df.format(accuracy))
-                    );
+                                    "accuracy_mean=" + df.format(sm.getMean()),
+                                    "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "accuracy_median=" + df.format(median)
+                            ));
                     writer.newLine();
                 }
             }
@@ -300,12 +314,15 @@ public class LangDetectRunner {
                 writer.write("\tNOISE: " + denoise(n));
                 writer.newLine();
                 for (String d : detectors) {
-                    double accuracy = calcOverallAccuracy(d, len, n, results);
+                    SummaryStatistics sm = new SummaryStatistics();
+                    double median = calcOverallAccuracy(d, len, n, results, sm);
                     writer.write(
                             StringUtils.joinWith(" ", "\t\t\t",
                                     StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
-                                    "accuracy=" + df.format(accuracy))
-                    );
+                                    "accuracy_mean=" + df.format(sm.getMean()),
+                                    "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "accuracy_median=" + df.format(median)
+                            ));
                     writer.newLine();
                 }
             }
@@ -334,6 +351,78 @@ public class LangDetectRunner {
                 }
             }
         }
+
+        dumpConfusionMatrices(maxDetectorNameLength, detectorArr, lengths, noise, langs, results, writer);
+    }
+
+    private void dumpConfusionMatrices(int maxDetectorNameLength, LangDetector[] detectors, List<Integer> lengths, Set<String> noise,
+                                       Set<String> langs, List<Result> results, BufferedWriter writer) throws IOException {
+        writer.newLine();
+        writer.write("CONFUSION MATRIX -- Detector/Length/Noise");
+        writer.newLine();
+        for (LangDetector detector : detectors) {
+            writer.newLine();
+            writer.write("DETECTOR: " + detector.getClass().getSimpleName());
+            writer.newLine();
+
+            for (Integer length : lengths) {
+                writer.write("\tLENGTH: " + length);
+                writer.newLine();
+                for (String n : noise) {
+                    writer.write("\t\tNOISE: "+denoise(n));
+                    writer.newLine();
+                    for (String lang : langs) {
+                        writer.write("\t\t\tLANG: "+lang);
+                        writer.newLine();
+                        Map<String, MutableInt> m = getConfusionMatrix(detector, length, n, lang, results);
+                        int sum = m.values().stream().map(e -> e.intValue()).reduce(0, (x, y) -> x + y);
+                        for (Map.Entry<String, MutableInt> e : m.entrySet()) {
+                            String percent = (sum > 0) ? dfPercent.format(((double)e.getValue().intValue()/(double)sum)): "";
+                            writer.write(StringUtils.joinWith(" ", "\t\t\t\t",
+                                StringUtils.rightPad(detector.getClass().getSimpleName(), maxDetectorNameLength, " "),
+                                    "len=" + length, "noise=" + denoise(n), "lang="+lang,
+
+                                "detected="+e.getKey(), "cnt="+e.getValue().intValue(),
+                                    "percent="+percent
+                            ));
+                            writer.newLine();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private Map<String, MutableInt> getConfusionMatrix(LangDetector detector, Integer length, String n, String lang, List<Result> results) {
+        Map<String, MutableInt> m = new HashMap<>();
+        for (Result r : results) {
+            if (r.length != length) {
+                continue;
+            }
+            if (!r.noise.equals(n)) {
+                continue;
+            }
+            if (!r.detector.equals(detector.getClass().getSimpleName())) {
+                continue;
+            }
+            if (!r.expectedlang.equals(lang)) {
+                continue;
+            }
+            MutableInt i = m.get(r.detectedlang);
+            if (i == null) {
+                i = new MutableInt(0);
+                m.put(r.detectedlang, i);
+            }
+            i.increment();
+
+        }
+
+        return m.entrySet()
+                .stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .collect(
+                        toMap(e -> e.getKey(), e -> e.getValue(), (e1, e2) -> e2,
+                                LinkedHashMap::new));
     }
 
     private static String denoise(String n) {
@@ -404,12 +493,12 @@ public class LangDetectRunner {
     }
 
 
-    private double calcOverallAccuracy(String d, int len, String noise, List<Result> results) {
-        //group by...the stupid way
-        int denom = 0;
-        int numerator = 0;
+    private double calcOverallAccuracy(String d, int len, String noise, List<Result> results, SummaryStatistics summaryStatistics) {
+        Median median = new Median();
+        Map<String, MutableInt> numerator = new HashMap<>();
+        Map<String, MutableInt> denominator = new HashMap<>();
         for (Result r : results) {
-
+            String lang = r.expectedlang;
             if (!r.detector.equals(d)) {
                 continue;
             }
@@ -423,11 +512,37 @@ public class LangDetectRunner {
                 continue;
             }
             if (r.hit) {
-                numerator++;
+                MutableInt m = numerator.get(lang);
+                if (m == null) {
+                    m = new MutableInt(0);
+                    numerator.put(lang, m);
+                }
+                m.increment();
             }
-            denom++;
+            MutableInt m = denominator.get(lang);
+            if (m == null) {
+                m = new MutableInt(0);
+                denominator.put(lang, m);
+            }
+            m.increment();
         }
-        return (double) numerator / (double) denom;
+        List<Double> accuracies = new ArrayList<>();
+        for (String lang : denominator.keySet()) {
+            if (denominator.get(lang).intValue() == 0) {
+                continue;
+            }
+            double num = (double)(numerator.containsKey(lang) ?
+                    numerator.get(lang).intValue() : 0);
+            double accuracy = num/(double)denominator.get(lang).intValue();
+            summaryStatistics.addValue(accuracy);
+            accuracies.add(accuracy);
+        }
+
+        double[] a = new double[accuracies.size()];
+        for (int i = 0; i < accuracies.size(); i++) {
+            a[i] = accuracies.get(i);
+        }
+        return median.evaluate(a);
     }
 
     private void dump(String detectorName, Integer length, List<Long> longs, BufferedWriter writer) throws IOException {
