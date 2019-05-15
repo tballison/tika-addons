@@ -17,8 +17,9 @@ public class SingleFileDiffLengths {
     DecimalFormat df = new DecimalFormat("#.0000");
     public static void main(String[] args) throws Exception {
         int[] lengths = new int[]{
-                10,20,50,100,200, 500, 1000,10000, 20000, 30000, 40000,
-                50000,60000,70000,80000,90000,100000
+                //10,20,50,100,200, 500, 1000,10000, 20000, 30000, 40000,
+                //50000,60000,70000,80000,90000,
+                100000
         };
         int blockSize = 1000;
         Path p = Paths.get(args[0]);

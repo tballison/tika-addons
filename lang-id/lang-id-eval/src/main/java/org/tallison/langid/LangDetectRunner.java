@@ -1,11 +1,13 @@
 package org.tallison.langid;
 
-import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.toMap;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,7 +26,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -37,7 +40,7 @@ import org.tallison.langid.yalder.YalderDetector;
 
 public class LangDetectRunner {
 
-    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\w+)_(\\d+)_0\\.(\\d+)_(\\d+)").matcher("");
+    Matcher m = Pattern.compile("(([a-z]+)(?:-[a-z]+)?)_(\\w+)_0\\.(\\d+)_(\\d+).txt.gz").matcher("");
     //detector, length, processing time
     Map<String, Map<Integer, List<Long>>> processingTimes = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.##");
@@ -60,9 +63,10 @@ public class LangDetectRunner {
                     new OptimaizeLangDetector(),
                     new OpenNLPLangDetector()
             };
+            int[] lengths = new int[]{10, 50, 100, 200, 500, 1000, 5000, 10000, 20000, 50000, 100000};
             LangDetectRunner runner = new LangDetectRunner(fullTableWriter);
             List<Result> results = new ArrayList<>();
-            runner.execute(sampleDir, detectors, results);
+            runner.execute(sampleDir, lengths, detectors, results);
             runner.dumpResults(detectors, results, aggregatedResultsWriter);
         }
 
@@ -87,23 +91,38 @@ public class LangDetectRunner {
                 "elapsed(ms)") + "\n");
     }
 
-    private void execute(Path sampleDir, LangDetector[] detectorArr, List<Result> results) throws IOException {
+    private void execute(Path sampleDir, int[] lengths, LangDetector[] detectorArr, List<Result> results) throws IOException {
         List<LangDetector> detectors = Arrays.asList(detectorArr);
-        for (File subdir : sampleDir.toFile().listFiles()) {
-            for (File langdir : subdir.listFiles()) {
+        for (File noisedir : sampleDir.toFile().listFiles()) {
+            for (File langdir : noisedir.listFiles()) {
+                if (!langdir.getName().contains("fra")) {
+                    continue;
+                }
                 for (File sampleFile : langdir.listFiles()) {
                     System.err.println("processing: " +langdir + " : "+ sampleFile);
-                    String string = FileUtils.readFileToString(sampleFile, StandardCharsets.UTF_8);
-                    for (LangDetector detector : detectors) {
-                        try {
-                            results.add(processSample(sampleFile, string, detector));
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    String string = readFileToString(sampleFile.toPath());
+                    for (int len : lengths) {
+                        for (LangDetector detector : detectors) {
+                            try {
+                                results.add(processSample(sampleFile, string, len, detector));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                     Collections.shuffle(detectors);
                 }
             }
+        }
+    }
+
+    private String readFileToString(Path sampleFile) throws IOException {
+        try (InputStream is = new BufferedInputStream(
+                new GzipCompressorInputStream(
+                Files.newInputStream(sampleFile)))) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            IOUtils.copy(is, bos);
+            return new String(bos.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 
@@ -558,10 +577,11 @@ public class LangDetectRunner {
         writer.newLine();
     }
 
-    private Result processSample(File sampleFile, String string, LangDetector detector) throws Exception {
+    private Result processSample(File sampleFile, String fullString, int length, LangDetector detector) throws Exception {
+        int end = Math.min(fullString.length(), length);
+        String truncatedString = fullString.substring(0, end);
         String fullLang = "";
         String expectedLang = "";
-        int length = -1;
         String noise = "";
         String lang1 = "";
         String lang1Conf = "";
@@ -575,14 +595,13 @@ public class LangDetectRunner {
             fullLang = m.group(1);
             expectedLang = m.group(2);
             src = m.group(3);
-            length = Integer.parseInt(m.group(4));
-            noise = m.group(5);
-            id = Integer.parseInt(m.group(6));
+            noise = m.group(4);
+            id = Integer.parseInt(m.group(5));
         } else {
             throw new IllegalArgumentException(sampleFile.getName());
         }
         long start = System.currentTimeMillis();
-        List<LangDetectResult> results = detector.detect(string);
+        List<LangDetectResult> results = detector.detect(truncatedString);
         long elapsed = System.currentTimeMillis() - start;
         if (results.size() > 0) {
             LangDetectResult r = results.get(0);
