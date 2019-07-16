@@ -135,7 +135,7 @@ public class LangDetectRunner {
                 for (Map.Entry<File, String> fileStringEntry : data.entrySet()) {
                     File sampleFile = fileStringEntry.getKey();
                     if (! sampleFile.getName().contains("_0.0_")) {
-                        continue;
+                        //continue;
                     }
                     String string = fileStringEntry.getValue();
 
