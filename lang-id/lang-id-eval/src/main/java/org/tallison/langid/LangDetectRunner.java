@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.tallison.langid;
 
 import static java.util.stream.Collectors.toMap;
@@ -23,6 +39,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,9 +57,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.descriptive.rank.Median;
-import org.tallison.langid.LangDetectResult;
-import org.tallison.langid.LangDetector;
 import org.tallison.langid.opennlp.OpenNLPLangDetector;
+import org.tallison.langid.opennlp.OpenNLPTikaEvalDetector;
 import org.tallison.langid.optimaize.OptimaizeLangDetector;
 import org.tallison.langid.yalder.YalderDetector;
 
@@ -58,12 +82,20 @@ public class LangDetectRunner {
                 BufferedWriter aggregatedResultsWriter = Files.newBufferedWriter(Paths.get(args[2]),
                         StandardCharsets.UTF_8)) {
 
+            YalderDetector yalderDetector = new YalderDetector();
+            yalderDetector.stopEarly(true);
+            //ProbingOpenNLPLangDetector probing = new ProbingOpenNLPLangDetector();
+            //probing.setNormalizer(new NoopNormalizer());
             LangDetector[] detectors = new LangDetector[]{
-                    new YalderDetector(),
+                    yalderDetector,
                     new OptimaizeLangDetector(),
-                    new OpenNLPLangDetector()
+                    new OpenNLPLangDetector(),
+                    new OpenNLPTikaEvalDetector()
             };
-            int[] lengths = new int[]{10, 50, 100, 200, 500, 1000, 5000, 10000, 20000, 50000, 100000};
+
+            int[] lengths = new int[]{
+                    10, 20, 50, 100, 200, 500, 1000,
+                    10000, 20000, 50000, 80000, 100000};
             LangDetectRunner runner = new LangDetectRunner(fullTableWriter);
             List<Result> results = new ArrayList<>();
             runner.execute(sampleDir, lengths, detectors, results);
@@ -96,11 +128,23 @@ public class LangDetectRunner {
         for (File noisedir : sampleDir.toFile().listFiles()) {
             for (File langdir : noisedir.listFiles()) {
                 if (!langdir.getName().contains("fra")) {
-                    continue;
+                    //continue;
                 }
-                for (File sampleFile : langdir.listFiles()) {
+                Map<File, String> data = loadFiles(langdir);
+                int processed = 0;
+                for (Map.Entry<File, String> fileStringEntry : data.entrySet()) {
+                    File sampleFile = fileStringEntry.getKey();
+                    if (! sampleFile.getName().contains("_0.0_")) {
+                        continue;
+                    }
+                    String string = fileStringEntry.getValue();
+
+
                     System.err.println("processing: " +langdir + " : "+ sampleFile);
-                    String string = readFileToString(sampleFile.toPath());
+                    processed++;
+                    if (processed > 5) {
+                        //continue;
+                    }
                     for (int len : lengths) {
                         for (LangDetector detector : detectors) {
                             try {
@@ -116,7 +160,68 @@ public class LangDetectRunner {
         }
     }
 
-    private String readFileToString(Path sampleFile) throws IOException {
+    private Map loadFiles(File langdir) {
+        int numThreads = 5;
+        ArrayBlockingQueue<File> files = new ArrayBlockingQueue<>(
+                langdir.listFiles().length+numThreads);
+        ConcurrentHashMap<File, String> concurrentHashMap = new ConcurrentHashMap<>();
+        files.addAll(Arrays.asList(langdir.listFiles()));
+        File poison = new File("");
+        for (int i = 0; i < numThreads; i++) {
+            files.add(poison);
+        }
+
+        ExecutorService es = Executors.newFixedThreadPool(numThreads);
+        ExecutorCompletionService cs = new ExecutorCompletionService(es);
+        for (int i = 0; i < numThreads; i++) {
+            cs.submit(new FileReader(files, concurrentHashMap));
+        }
+        int finished = 0;
+        while (finished < numThreads) {
+            Future<Integer> future = null;
+            try {
+                future = cs.take();
+                if (future != null) {
+                    finished++;
+                    future.get();
+                }
+            } catch (InterruptedException|ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        es.shutdownNow();
+        return concurrentHashMap;
+    }
+
+
+
+    private static class FileReader implements Callable<Integer> {
+        private final ArrayBlockingQueue<File> files;
+        private final ConcurrentHashMap<File, String> map;
+
+        public FileReader(ArrayBlockingQueue<File> files, ConcurrentHashMap<File, String> map) {
+            this.files = files;
+            this.map = map;
+        }
+
+        @Override
+        public Integer call() throws Exception {
+            while (true) {
+                File f = files.poll(1, TimeUnit.SECONDS);
+                if (f == null) {
+                    continue;
+                }
+                if (f.getName().equals("")) {
+                    return 1;
+                }
+                String txt = readFileToString(f.toPath());
+                map.put(f, txt);
+            }
+        }
+    }
+
+
+    private static String readFileToString(Path sampleFile) throws IOException {
         try (InputStream is = new BufferedInputStream(
                 new GzipCompressorInputStream(
                 Files.newInputStream(sampleFile)))) {
@@ -176,59 +281,30 @@ public class LangDetectRunner {
                 dump(d, length, millis, writer);
             }
         }
-
         writer.newLine();
-
-        writer.write("\nAccuracy Per Languages -- Detector/Length/Noise/Language");
-        writer.newLine();
-        for (String d : detectors) {
-            writer.write("DETECTOR: " + d);
-            writer.newLine();
-            for (Integer len : lengths) {
-                writer.write("\tLENGTH: " + len);
-                writer.newLine();
-                for (String n : noise) {
-                    writer.write("\t\tNOISE: " + denoise(n));
-                    writer.newLine();
-                    for (String lang : langs) {
-                        double accuracy = calcAccuracy(d, len, n, lang, results);
-                        if (accuracy >= 0.0) {
-                            writer.write(
-                                    StringUtils.joinWith(" ", "\t\t\t",
-                                            d, "len=" + len, "noise=" + denoise(n), "lang=" + lang,
-                                            "accuracy=" + df.format(accuracy))
-                            );
-                            writer.newLine();
-                        }
-                    }
-                }
-            }
-        }
-
-        writer.newLine();
-        writer.write("Accuracy Per Languages -- Length/Noise/Language/Detector");
+        writer.write("Accuracy Across Languages -- Length/Noise/Detector");
         writer.newLine();
         for (Integer len : lengths) {
-            writer.write("\tLENGTH: " + len);
+            writer.write("LENGTH: " + len);
             writer.newLine();
             for (String n : noise) {
-                writer.write("\t\tNOISE: " + denoise(n));
+                writer.write("\tNOISE: " + denoise(n));
                 writer.newLine();
-                for (String lang : langs) {
-                    for (String d : detectors) {
-                        double accuracy = calcAccuracy(d, len, n, lang, results);
-                        if (accuracy >= 0.0) {
-                            writer.write(
-                                    StringUtils.joinWith(" ", "\t\t\t",
-                                            StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n), "lang=" + lang,
-                                            "accuracy=" + df.format(accuracy))
-                            );
-                            writer.newLine();
-                        }
-                    }
+                for (String d : detectors) {
+                    SummaryStatistics sm = new SummaryStatistics();
+                    double median = calcOverallAccuracy(d, len, n, results, sm);
+                    writer.write(
+                            StringUtils.joinWith(" ", "\t\t\t",
+                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
+                                    "accuracy_mean=" + df.format(sm.getMean()),
+                                    "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
+                                    "accuracy_median=" + df.format(median)
+                            ));
+                    writer.newLine();
                 }
             }
         }
+
 
         writer.newLine();
         writer.write("Accuracy Across Languages -- Detector/Length/Noise");
@@ -248,7 +324,7 @@ public class LangDetectRunner {
                                     "accuracy_mean=" + df.format(sm.getMean()),
                                     "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
                                     "accuracy_median=" + df.format(median)
-                    ));
+                            ));
                     writer.newLine();
                 }
             }
@@ -324,30 +400,6 @@ public class LangDetectRunner {
             }
         }
         writer.newLine();
-        writer.write("Accuracy Across Languages -- Length/Noise/Detector");
-        writer.newLine();
-        for (Integer len : lengths) {
-            writer.write("LENGTH: " + len);
-            writer.newLine();
-            for (String n : noise) {
-                writer.write("\tNOISE: " + denoise(n));
-                writer.newLine();
-                for (String d : detectors) {
-                    SummaryStatistics sm = new SummaryStatistics();
-                    double median = calcOverallAccuracy(d, len, n, results, sm);
-                    writer.write(
-                            StringUtils.joinWith(" ", "\t\t\t",
-                                    StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n),
-                                    "accuracy_mean=" + df.format(sm.getMean()),
-                                    "accuracy_stdev=" + df.format(sm.getStandardDeviation()),
-                                    "accuracy_median=" + df.format(median)
-                            ));
-                    writer.newLine();
-                }
-            }
-        }
-
-        writer.newLine();
         writer.write("CONFIDENCE SCORES -- Length/Noise/Detector");
         writer.newLine();
         for (Integer len : lengths) {
@@ -370,6 +422,59 @@ public class LangDetectRunner {
                 }
             }
         }
+        writer.newLine();
+        writer.write("\nAccuracy Per Languages -- Detector/Length/Noise/Language");
+        writer.newLine();
+        for (String d : detectors) {
+            writer.write("DETECTOR: " + d);
+            writer.newLine();
+            for (Integer len : lengths) {
+                writer.write("\tLENGTH: " + len);
+                writer.newLine();
+                for (String n : noise) {
+                    writer.write("\t\tNOISE: " + denoise(n));
+                    writer.newLine();
+                    for (String lang : langs) {
+                        double accuracy = calcAccuracy(d, len, n, lang, results);
+                        if (accuracy >= 0.0) {
+                            writer.write(
+                                    StringUtils.joinWith(" ", "\t\t\t",
+                                            d, "len=" + len, "noise=" + denoise(n), "lang=" + lang,
+                                            "accuracy=" + df.format(accuracy))
+                            );
+                            writer.newLine();
+                        }
+                    }
+                }
+            }
+        }
+
+        writer.newLine();
+        writer.write("Accuracy Per Languages -- Length/Noise/Language/Detector");
+        writer.newLine();
+        for (Integer len : lengths) {
+            writer.write("\tLENGTH: " + len);
+            writer.newLine();
+            for (String n : noise) {
+                writer.write("\t\tNOISE: " + denoise(n));
+                writer.newLine();
+                for (String lang : langs) {
+                    for (String d : detectors) {
+                        double accuracy = calcAccuracy(d, len, n, lang, results);
+                        if (accuracy >= 0.0) {
+                            writer.write(
+                                    StringUtils.joinWith(" ", "\t\t\t",
+                                            StringUtils.rightPad(d, maxDetectorNameLength, " "), "len=" + len, "noise=" + denoise(n), "lang=" + lang,
+                                            "accuracy=" + df.format(accuracy))
+                            );
+                            writer.newLine();
+                        }
+                    }
+                }
+            }
+        }
+
+        writer.newLine();
 
         dumpConfusionMatrices(maxDetectorNameLength, detectorArr, lengths, noise, langs, results, writer);
     }
