@@ -46,9 +46,8 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.serialization.JsonMetadataList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,21 +93,25 @@ public class Indexer {
                         .build());
     }
 
+    private final Path rootDir;
+
+    public Indexer(Path rootDir) {
+        this.rootDir = rootDir;
+    }
     public static void main(String[] args) throws Exception {
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine = parser.parse(OPTIONS, args);
         TikaClient tikaClient = TikaClientFactory.getClient(commandLine);
         Path rootDir = TikaClientFactory.getRootDir(commandLine);
-        Indexer indexer = new Indexer();
+        Indexer indexer = new Indexer(rootDir);
         int numThreads = (commandLine.hasOption("n")) ?
                 Integer.parseInt(commandLine.getOptionValue("n")) :
                 DEFAULT_NUMBER_OF_THREADS;
-        indexer.execute(rootDir, tikaClient,
+        indexer.execute(tikaClient,
                 commandLine.getOptionValue("s"), numThreads);
     }
 
-    private void execute(Path extractsDir,
-                         TikaClient tikaClient,
+    private void execute(TikaClient tikaClient,
                          String solrUrl, int numThreads) throws IOException {
         try (SolrClient solrClient =
                      new ConcurrentUpdateSolrClient.Builder(solrUrl).build()) {
@@ -124,7 +127,7 @@ public class Indexer {
             ExecutorCompletionService<Integer> executorCompletionService = new ExecutorCompletionService<>(service);
 
             ArrayBlockingQueue<Path> extracts = new ArrayBlockingQueue<>(1000);
-            executorCompletionService.submit(new PathCrawler(extractsDir, extracts, numThreads));
+            executorCompletionService.submit(new PathCrawler(extracts, numThreads));
             LOG.info("numThreads: "+numThreads);
             long start = System.currentTimeMillis();
             for (int i = 0; i < numThreads; i++) {
@@ -193,8 +196,11 @@ public class Indexer {
 
         private void processFile(Path path) {
             List<Metadata> metadataList = null;
-            try (InputStream is = Files.newInputStream(path)) {
-                metadataList = tikaClient.parse(is);
+            try (TikaInputStream tis = TikaInputStream.get(path)) {
+                long start = System.currentTimeMillis();
+                metadataList = tikaClient.parse(tis);
+                LOG.info("completed "+path +" in "+(System.currentTimeMillis()-start)
+                        + " millis");
             } catch (IOException | TikaClientException e) {
                 LOG.warn("serious problem with parse", e);
             }
@@ -218,7 +224,7 @@ public class Indexer {
             doc.setField("parent_id", parentId);
             doc.setField("path",
                     FilenameUtils.separatorsToUnix(
-                            path.toAbsolutePath().toString()));
+                            rootDir.relativize(path).toString()));
             try {
                 solrClient.add(doc);
             } catch (SolrServerException | IOException e) {
@@ -229,19 +235,17 @@ public class Indexer {
     }
 
     private class PathCrawler implements Callable<Integer> {
-        private final Path root;
         private final ArrayBlockingQueue<Path> extracts;
         private final int numThreads;
 
-        PathCrawler(Path root, ArrayBlockingQueue<Path> extracts, int numThreads) {
-            this.root = root;
+        PathCrawler(ArrayBlockingQueue<Path> extracts, int numThreads) {
             this.extracts = extracts;
             this.numThreads = numThreads;
         }
 
         @Override
         public Integer call() throws Exception {
-            Files.walkFileTree(root, new PathAdder(extracts));
+            Files.walkFileTree(rootDir, new PathAdder(extracts));
             for (int i = 0; i < numThreads; i++) {
                 for (int j = 0; j < 60; j++) {
                     try {

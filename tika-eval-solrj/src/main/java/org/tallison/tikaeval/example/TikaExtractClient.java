@@ -23,14 +23,16 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.serialization.JsonMetadataList;
 
 
 public class TikaExtractClient implements TikaClient {
 
-    public List<Metadata> parse(InputStream is) throws TikaClientException {
+    public List<Metadata> parse(TikaInputStream is) throws TikaClientException {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(is, StandardCharsets.UTF_8))) {
             return JsonMetadataList.fromJson(reader);

@@ -19,10 +19,12 @@ package org.tallison.tikaeval.example;
 import java.io.InputStream;
 import java.util.List;
 
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 
 
 public interface TikaClient {
 
-    public List<Metadata> parse(InputStream is) throws TikaClientException;
+    //for now, this has to be a TikaInputStream to allow for re-tries
+    List<Metadata> parse(TikaInputStream is) throws TikaClientException;
 }

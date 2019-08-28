@@ -34,6 +34,7 @@ import org.apache.tika.eval.textstats.TokenEntropy;
 import org.apache.tika.eval.tokens.CommonTokenResult;
 import org.apache.tika.eval.tokens.TokenCounts;
 import org.apache.tika.eval.util.EvalExceptionUtils;
+import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.PDF;
 import org.apache.tika.metadata.PagedText;
@@ -68,6 +69,9 @@ public class TikaEvalDocMapper implements DocMapper {
         tryToAddDate(TikaCoreProperties.MODIFIED, "modified", metadata, doc);
         tryToAddString(TikaCoreProperties.CREATOR, "authors", metadata, doc);
         tryToAddString(Metadata.CONTENT_TYPE, "mime", metadata, doc);
+        tryToAddString(TikaCoreProperties.TITLE, "title", metadata, doc);
+        tryToAddString(DublinCore.SUBJECT, "subject", metadata, doc);
+
         handleStackTrace(getStackTrace(metadata), doc);
         return doc;
     }
@@ -175,7 +179,11 @@ public class TikaEvalDocMapper implements DocMapper {
                         summaryStatistics.addValue((double) unmapped[i] / (double) chars[i]);
                     }
                 }
-                doc.setField("pdf_percent_unicode_mapped", summaryStatistics.getMean());
+                double avg = summaryStatistics.getMean();
+                if (Double.isNaN(avg)) {
+                    avg = 0.0;
+                }
+                doc.setField("pdf_percent_unicode_mapped", avg);
             }
         }
     }
