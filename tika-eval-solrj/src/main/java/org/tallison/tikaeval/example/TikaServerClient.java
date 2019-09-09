@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,12 +33,15 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.GzipCompressingEntity;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.IOUtils;
 import org.apache.tika.io.TikaInputStream;
@@ -55,6 +59,8 @@ public class TikaServerClient implements TikaClient {
 
     private final static String END_POINT = "/rmeta/text";
     private final static int MAX_TRIES = 3;
+    private final static int TIMEOUT = 6000; // seconds
+
     //if there are retries, what is the maximum amount of millis
     private final static long MAX_TIME_FOR_RETRIES_MILLIS = 30000;
 
@@ -68,11 +74,12 @@ public class TikaServerClient implements TikaClient {
         NO_RESPONSE_IO_EXCEPTION,
         RESPONSE_NON_200_STATUS,
         RESPONSE_BAD_REQUEST,
+        RESPONSE_PARSE_EXCEPTION,
         RESPONSE_UNPROCESSABLE_EXCEPTION,
         RESPONSE_SERVER_UNAVAILABLE,
         RESPONSE_BAD_ENTITY,
         RESPONSE_SUCCESS,
-        INTERRUPTED_EXCEPTION
+        INTERRUPTED_EXCEPTION;
     }
 
     public TikaServerClient() {
@@ -80,7 +87,11 @@ public class TikaServerClient implements TikaClient {
     }
 
     public TikaServerClient(String ... urls) {
-        this.client = HttpClients.createDefault();
+        RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(TIMEOUT * 1000)
+                .setConnectionRequestTimeout(TIMEOUT * 1000)
+                .setSocketTimeout(TIMEOUT * 1000).build();
+        this.client = HttpClients.custom().setDefaultRequestConfig(config).build();
         this.urls = new ArrayList<>();
         for (String u : urls) {
             this.urls.add(u + END_POINT);
@@ -99,7 +110,7 @@ public class TikaServerClient implements TikaClient {
         long retryStart = System.currentTimeMillis();
         long retryElapsed = 0;
         while (response.state !=
-                STATE.RESPONSE_UNPROCESSABLE_EXCEPTION &&
+                STATE.RESPONSE_PARSE_EXCEPTION &&
                 response.state != STATE.RESPONSE_SUCCESS
                 && tries++ < MAX_TRIES
                 && retryElapsed < MAX_TIME_FOR_RETRIES_MILLIS) {
@@ -120,7 +131,7 @@ public class TikaServerClient implements TikaClient {
             }
             retryElapsed = System.currentTimeMillis() - retryStart;
         }
-        if (response.state == STATE.RESPONSE_UNPROCESSABLE_EXCEPTION ||
+        if (response.state == STATE.RESPONSE_PARSE_EXCEPTION ||
             response.state == STATE.RESPONSE_SUCCESS) {
             return response.metadataList;
         }
@@ -144,7 +155,7 @@ public class TikaServerClient implements TikaClient {
             return new TikaServerResponse(STATE.NO_RESPONSE_IO_EXCEPTION);
         }
         int statusInt = response.getStatusLine().getStatusCode();
-        if (statusInt == 200) {
+        if (statusInt == 200 || statusInt == 422) {
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(response.getEntity().getContent(),
                     StandardCharsets.UTF_8))) {
@@ -156,18 +167,17 @@ public class TikaServerClient implements TikaClient {
                         200, "", null);
             }
         } else if (statusInt == 415) {
-            LOG.warn("unsupported media type");
+            LOG.warn("unsupported media type: "+path);
             //unsupported media type
             return new TikaServerResponse(STATE.RESPONSE_UNPROCESSABLE_EXCEPTION);
-        } else if (statusInt == 422) {
-            LOG.warn("encrypted file?");
-            //this is an encrypted file (at least in the unit tests)
-            return new TikaServerResponse(STATE.RESPONSE_UNPROCESSABLE_EXCEPTION);
-        } else if (statusInt == 400) {
-            LOG.warn("bad request");
+        } /*else if (statusInt == 422) {
+            LOG.warn("parse exception: "+path);
+            return new TikaServerResponse(STATE.RESPONSE_PARSE_EXCEPTION);
+        }*/ else if (statusInt == 400) {
+            LOG.warn("bad request: " + path);
             return new TikaServerResponse(STATE.RESPONSE_BAD_REQUEST);
         } else if (statusInt == 503) {
-            LOG.warn("server active, but not available");
+            LOG.warn("server active, but not available: "+path);
             //server is in shutdown mode
             return new TikaServerResponse(STATE.RESPONSE_SERVER_UNAVAILABLE);
         }

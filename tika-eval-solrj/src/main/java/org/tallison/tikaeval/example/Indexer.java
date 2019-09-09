@@ -213,13 +213,20 @@ public class Indexer {
             String parentId = UUID.randomUUID().toString();
             for (int i = 0; i < metadataList.size(); i++) {
                 String docId = (i == 0) ? parentId : UUID.randomUUID().toString();
-                addDoc(path, parentId, docId, metadataList.get(i));
+                addDoc(path, parentId, docId, i, metadataList);
             }
         }
 
-        private void addDoc(Path path, String parentId, String docId, Metadata metadata) {
-
+        private void addDoc(Path path, String parentId,
+                            String docId, int metadataListIndex,
+                            List<Metadata> metadataList) {
+            Metadata metadata = metadataList.get(metadataListIndex);
             SolrInputDocument doc = docMapper.map(metadata);
+            if (metadataListIndex == 0) {
+                doc.setField("is_embedded", false);
+            } else {
+                doc.setField("is_embedded", true);
+            }
             doc.setField("id", docId);
             doc.setField("parent_id", parentId);
             doc.setField("path",

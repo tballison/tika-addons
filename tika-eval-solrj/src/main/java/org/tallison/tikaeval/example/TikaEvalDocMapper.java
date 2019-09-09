@@ -129,6 +129,8 @@ public class TikaEvalDocMapper implements DocMapper {
     private void addContent(SolrInputDocument doc, Metadata metadata) {
         String content = metadata.get(RecursiveParserWrapperHandler.TIKA_CONTENT);
         if (StringUtils.isBlank(content)) {
+            doc.setField("missing_content", true);
+            doc.setField("num_tokens", 0);
             return;
         }
         content = content.replaceAll("\n+", "\n");
