@@ -25,5 +25,5 @@ import org.apache.tika.metadata.Metadata;
  */
 public interface DocMapper {
 
-    Metadata map(Metadata metadata);
+    SolrInputDocument map(Metadata metadata);
 }

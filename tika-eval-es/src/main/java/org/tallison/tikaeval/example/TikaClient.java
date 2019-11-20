@@ -16,14 +16,15 @@
  */
 package org.tallison.tikaeval.example;
 
-import org.apache.solr.common.SolrInputDocument;
+import java.io.InputStream;
+import java.util.List;
+
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 
-/**
- * Maps a tika metadata object to a SolrInputDocument.
- * This must be thread safe!
- */
-public interface DocMapper {
 
-    Metadata map(Metadata metadata);
+public interface TikaClient {
+
+    //for now, this has to be a TikaInputStream to allow for re-tries
+    List<Metadata> parse(TikaInputStream is) throws TikaClientException;
 }

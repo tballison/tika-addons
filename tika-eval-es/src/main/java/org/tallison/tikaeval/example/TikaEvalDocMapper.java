@@ -62,8 +62,8 @@ public class TikaEvalDocMapper implements DocMapper {
     }
 
     @Override
-    public Metadata map(Metadata metadata) {
-        Metadata doc = new Metadata();
+    public SolrInputDocument map(Metadata metadata) {
+        SolrInputDocument doc = new SolrInputDocument();
         addContent(doc, metadata);
         tryToAddDate(TikaCoreProperties.CREATED, "created", metadata, doc);
         tryToAddDate(TikaCoreProperties.MODIFIED, "modified", metadata, doc);
@@ -80,15 +80,15 @@ public class TikaEvalDocMapper implements DocMapper {
         return doc;
     }
 
-    private void handleStackTrace(String stackTrace, Metadata doc) {
+    private void handleStackTrace(String stackTrace, SolrInputDocument doc) {
         if (StringUtils.isBlank(stackTrace)) {
             return;
         }
 
-        doc.set("stacktrace", stackTrace);
+        doc.setField("stacktrace", stackTrace);
         String stackTraceFacet = EvalExceptionUtils.normalize(stackTrace);
         if (!StringUtils.isBlank(stackTraceFacet)) {
-            doc.set("stacktrace_facet", stackTraceFacet);
+            doc.setField("stacktrace_facet", stackTraceFacet);
         }
     }
 
@@ -101,12 +101,15 @@ public class TikaEvalDocMapper implements DocMapper {
     }
 
     private void tryToAddString(Object property, String fieldName, Metadata metadata,
-                                Metadata doc) {
-
+                                SolrInputDocument doc) {
         if (property instanceof Property && ((Property)property).isMultiValuePermitted()) {
+            List<String> values = new ArrayList<>();
             for (String v : metadata.getValues((Property)property)) {
-                doc.add(fieldName, v);
+                if (!StringUtils.isBlank(v)) {
+                    values.add(v);
+                }
             }
+            doc.setField(fieldName, values);
         } else {
             String value = null;
 
@@ -116,23 +119,23 @@ public class TikaEvalDocMapper implements DocMapper {
                 value = metadata.get((String)property);
             }
             if (!StringUtils.isBlank(value)) {
-                doc.set(fieldName, value);
+                doc.setField(fieldName, value);
             }
         }
     }
 
     private void tryToAddDate(Property property, String fieldName, Metadata metadata,
-                              Metadata doc) {
+                              SolrInputDocument doc) {
         if (metadata.getDate(property) != null) {
-            doc.set(fieldName, metadata.get(property));
+            doc.setField(fieldName, metadata.getDate(property));
         }
     }
 
-    private void addContent(Metadata doc, Metadata metadata) {
+    private void addContent(SolrInputDocument doc, Metadata metadata) {
         String content = metadata.get(RecursiveParserWrapperHandler.TIKA_CONTENT);
         if (StringUtils.isBlank(content)) {
-            doc.set("missing_content", "true");
-            doc.set("num_tokens", "0");
+            doc.setField("missing_content", true);
+            doc.setField("num_tokens", 0);
             return;
         }
         content = content.replaceAll("\n+", "\n");
@@ -141,34 +144,27 @@ public class TikaEvalDocMapper implements DocMapper {
         if (content.length() > TRUNCATED_LENGTH) {
             truncated = truncated.substring(0,TRUNCATED_LENGTH);
         }
-        doc.set("content_trunc", truncated);
-        doc.set("content", content);
+        doc.setField("content_trunc", truncated);
+        doc.setField("content", content);
 
         //now add tika-eval stats
         Map<Class, Object> stats = textStatsCalculator.calculate(content);
         CommonTokenResult commonTokenResult = (CommonTokenResult)stats.get(CommonTokens.class);
-
-        int numAlpha = commonTokenResult.getAlphabeticTokens();
-        if (numAlpha > 0) {
-            doc.set("oov",
-                    Double.toString(commonTokenResult.getOOV()));
-        }
-        doc.set("num_alpha_tokens",
-                Integer.toString(commonTokenResult.getAlphabeticTokens()));
-        doc.set("num_common_tokens",
-                Integer.toString(commonTokenResult.getCommonTokens()));
+        doc.setField("oov", commonTokenResult.getOOV());
+        doc.setField("num_alpha_tokens", commonTokenResult.getAlphabeticTokens());
+        doc.setField("num_common_tokens", commonTokenResult.getCommonTokens());
         TokenCounts tokenCounts = (TokenCounts) stats.get(BasicTokenCountStatsCalculator.class);
 
-        doc.set("num_tokens", Integer.toString(tokenCounts.getTotalTokens()));
+        doc.setField("num_tokens", tokenCounts.getTotalTokens());
 
         Double tokenEntropy = (Double)stats.get(TokenEntropy.class);
         if (tokenEntropy != null && ! tokenEntropy.isNaN()) {
-            doc.set("token_entropy", Double.toString(tokenEntropy));
+            doc.setField("token_entropy", tokenEntropy);
         }
         List<Language> detectedLanguages = (List<Language>) stats.get(LanguageIDWrapper.class);
         if (detectedLanguages != null && detectedLanguages.size() > 0) {
-            doc.set("lang", detectedLanguages.get(0).getLanguage());
-            doc.set("lang_conf", Double.toString(detectedLanguages.get(0).getConfidence()));
+            doc.setField("lang", detectedLanguages.get(0).getLanguage());
+            doc.setField("lang_conf", detectedLanguages.get(0).getConfidence());
         }
 
         if (metadata.get(PagedText.N_PAGES) != null) {
@@ -176,7 +172,7 @@ public class TikaEvalDocMapper implements DocMapper {
             if (numPages > 0) {
                 float tokensPerPage =
                         (float)tokenCounts.getTotalTokens()/(float)numPages;
-                doc.set("tokens_per_page", Double.toString(tokensPerPage));
+                doc.setField("tokens_per_page", tokensPerPage);
             }
         }
 
@@ -194,7 +190,7 @@ public class TikaEvalDocMapper implements DocMapper {
                 if (Double.isNaN(avg)) {
                     avg = 0.0;
                 }
-                doc.set("pdf_percent_unicode_mapped", Double.toString(avg));
+                doc.setField("pdf_percent_unicode_mapped", avg);
             }
         }
     }

@@ -16,14 +16,28 @@
  */
 package org.tallison.tikaeval.example;
 
-import org.apache.solr.common.SolrInputDocument;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import org.apache.tika.Tika;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.serialization.JsonMetadataList;
 
-/**
- * Maps a tika metadata object to a SolrInputDocument.
- * This must be thread safe!
- */
-public interface DocMapper {
 
-    Metadata map(Metadata metadata);
+public class TikaExtractClient implements TikaClient {
+
+    public List<Metadata> parse(TikaInputStream is) throws TikaClientException {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            return JsonMetadataList.fromJson(reader);
+        } catch (IOException | TikaException e) {
+            throw new TikaClientException("problem w extract", e);
+        }
+    }
 }

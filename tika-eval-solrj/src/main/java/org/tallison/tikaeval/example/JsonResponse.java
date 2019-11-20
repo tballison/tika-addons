@@ -16,14 +16,44 @@
  */
 package org.tallison.tikaeval.example;
 
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.tika.metadata.Metadata;
+import com.google.gson.JsonElement;
 
-/**
- * Maps a tika metadata object to a SolrInputDocument.
- * This must be thread safe!
- */
-public interface DocMapper {
+public class JsonResponse {
 
-    Metadata map(Metadata metadata);
+    private final int status;
+    private final String msg;
+    private final JsonElement root;
+
+    public JsonResponse(int status, JsonElement root) {
+        this.status = status;
+        this.root = root;
+        this.msg = null;
+    }
+
+    public JsonResponse(int status, String msg) {
+        this.status = status;
+        this.msg = msg;
+        this.root = null;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public JsonElement getJson() {
+        return root;
+    }
+
+    @Override
+    public String toString() {
+        return "JsonResponse{" +
+                "status=" + status +
+                ", msg='" + msg + '\'' +
+                ", root=" + root +
+                '}';
+    }
 }

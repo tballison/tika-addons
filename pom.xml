@@ -43,7 +43,8 @@
       <module>zip-dumper</module>
       <module>lang-id</module>
       <module>tika-eval-solrj</module>
-      <!--    <module>pdfbox18-shaded-integration-test</module>-->
+    <module>tika-eval-at-scale-core</module>
+    <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
 </project>

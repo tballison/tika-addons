@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -62,7 +61,6 @@ public class Indexer {
 
     private static final Logger LOG = LoggerFactory.getLogger(Indexer.class);
 
-    private static AtomicInteger DOCS_INDEXED = new AtomicInteger(0);
 
     static Options OPTIONS = new Options();
 
@@ -93,16 +91,10 @@ public class Indexer {
                         .hasArg()
                         .required(false)
                         .desc("number of threads")
-                        .build())
-                .addOption(Option.builder("m")
-                                .longOpt("maxDocs")
-                                .hasArg(true)
-                                .required(false)
-                                .desc("maximum number of documents to index").build());
+                        .build());
     }
 
     private final Path rootDir;
-    private int maxDocs = -1;
 
     public Indexer(Path rootDir) {
         this.rootDir = rootDir;
@@ -113,28 +105,21 @@ public class Indexer {
         TikaClient tikaClient = TikaClientFactory.getClient(commandLine);
         Path rootDir = TikaClientFactory.getRootDir(commandLine);
         Indexer indexer = new Indexer(rootDir);
-
         int numThreads = (commandLine.hasOption("n")) ?
                 Integer.parseInt(commandLine.getOptionValue("n")) :
                 DEFAULT_NUMBER_OF_THREADS;
-        int maxDocs = (commandLine.hasOption("m")) ?
-                Integer.parseInt(commandLine.getOptionValue("m")) :
-                -1;
-        indexer.setMaxDocs(maxDocs);
         indexer.execute(TikaClientFactory.getClient(commandLine),
                 commandLine.getOptionValue("s"), numThreads);
     }
 
-    private void setMaxDocs(int maxDocs) {
-        this.maxDocs = maxDocs;
-    }
-
     private void execute(TikaClient tikaClient,
-                         String searchUrl, int numThreads) throws Exception {
-        try (SearchClient searchClient = SearchClientFactory.getClient(searchUrl)) {
+                         String solrUrl, int numThreads) throws IOException {
+        try (SolrClient solrClient =
+                     new ConcurrentUpdateSolrClient.Builder(solrUrl).build()) {
             try {
-                searchClient.deleteAll();
-            } catch (IOException e) {
+                solrClient.deleteByQuery("*:*");
+                solrClient.commit();
+            } catch (SolrServerException e) {
                 LOG.warn("problem deleting", e);
             }
             //this is expensive. Only use one.
@@ -144,11 +129,10 @@ public class Indexer {
 
             ArrayBlockingQueue<Path> extracts = new ArrayBlockingQueue<>(1000);
             executorCompletionService.submit(new PathCrawler(extracts, numThreads));
-            LOG.info("numThreads: " + numThreads);
+            LOG.info("numThreads: "+numThreads);
             long start = System.currentTimeMillis();
             for (int i = 0; i < numThreads; i++) {
-                executorCompletionService.submit(new IndexerWorker(tikaClient, searchClient,
-                        extracts, docMapper));
+                executorCompletionService.submit(new IndexerWorker(tikaClient, solrClient, extracts, docMapper));
             }
 
             int completed = 0;
@@ -161,27 +145,31 @@ public class Indexer {
                     throw new RuntimeException(e);
                 }
             }
-            long elapsed = System.currentTimeMillis() - start;
-            LOG.info("finished indexing in " + elapsed + " milliseconds");
+            long elapsed = System.currentTimeMillis()-start;
+            LOG.info("finished indexing in "+elapsed+ " milliseconds");
             service.shutdown();
             service.shutdownNow();
-            elapsed = System.currentTimeMillis() - start;
-            LOG.info("finished the commit in " + elapsed + " milliseconds");
+            try {
+                solrClient.commit();
+                elapsed = System.currentTimeMillis()-start;
+                LOG.info("finished the commit in "+elapsed+" milliseconds");
+            } catch (SolrServerException e) {
+                LOG.warn("problem committing ", e);
+            }
         }
     }
-
 
     private class IndexerWorker implements Callable<Integer> {
 
         private final ArrayBlockingQueue<Path> extracts;
         private final TikaClient tikaClient;
-        private final SearchClient searchClient;
+        private final SolrClient solrClient;
         private final DocMapper docMapper;
 
-        IndexerWorker(TikaClient tikaClient, SearchClient searchClient, ArrayBlockingQueue<Path> extracts,
+        IndexerWorker(TikaClient tikaClient, SolrClient solrClient, ArrayBlockingQueue<Path> extracts,
                       DocMapper docMapper) {
             this.tikaClient = tikaClient;
-            this.searchClient = searchClient;
+            this.solrClient = solrClient;
             this.extracts = extracts;
             this.docMapper = docMapper;
         }
@@ -216,9 +204,8 @@ public class Indexer {
                 if (metadataList.size() > 0) {
                     metadataList.get(0).set(Metadata.CONTENT_LENGTH, Long.toString(length));
                 }
-                int total = DOCS_INDEXED.incrementAndGet();
                 LOG.info("completed "+path +" in "+(System.currentTimeMillis()-start)
-                        + " millis ("+total+" docs total)");
+                        + " millis");
             } catch (IOException | TikaClientException e) {
                 LOG.warn("serious problem with parse", e);
             }
@@ -239,21 +226,20 @@ public class Indexer {
                             String docId, int metadataListIndex,
                             List<Metadata> metadataList) {
             Metadata metadata = metadataList.get(metadataListIndex);
-            Metadata mapped = docMapper.map(metadata);
-
+            SolrInputDocument doc = docMapper.map(metadata);
             if (metadataListIndex == 0) {
-                mapped.set("is_embedded", "false");
+                doc.setField("is_embedded", false);
             } else {
-                mapped.set("is_embedded", "true");
+                doc.setField("is_embedded", true);
             }
-            mapped.set(searchClient.getIdField(), docId);
-            mapped.set("parent_id", parentId);
-            mapped.set("path",
+            doc.setField("id", docId);
+            doc.setField("parent_id", parentId);
+            doc.setField("path",
                     FilenameUtils.separatorsToUnix(
                             rootDir.relativize(path).toString()));
             try {
-                searchClient.addDoc(mapped);
-            } catch (IOException e) {
+                solrClient.add(doc, WITHIN_MS);
+            } catch (SolrServerException | IOException e) {
                 LOG.warn("problem adding doc", e);
             }
         }
@@ -293,7 +279,6 @@ public class Indexer {
     private class PathAdder implements FileVisitor {
 
         private final ArrayBlockingQueue<Path> extracts;
-        private int numVisited = 0;
 
         PathAdder(ArrayBlockingQueue<Path> extracts) {
             this.extracts = extracts;
@@ -306,15 +291,10 @@ public class Indexer {
 
         @Override
         public FileVisitResult visitFile(Object file, BasicFileAttributes attrs) throws IOException {
-            if (maxDocs > 0 && numVisited >= maxDocs) {
-                return FileVisitResult.TERMINATE;
-            }
-
             for (int i = 0; i < MAX_ITERATIONS; i++) {
                 try {
                     boolean added = extracts.offer((Path) file, 1, TimeUnit.SECONDS);
                     if (added) {
-                        numVisited++;
                         return FileVisitResult.CONTINUE;
                     }
                 } catch (InterruptedException e) {

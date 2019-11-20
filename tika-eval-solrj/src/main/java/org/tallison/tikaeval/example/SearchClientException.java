@@ -16,14 +16,20 @@
  */
 package org.tallison.tikaeval.example;
 
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.tika.metadata.Metadata;
+import java.io.IOException;
 
-/**
- * Maps a tika metadata object to a SolrInputDocument.
- * This must be thread safe!
- */
-public interface DocMapper {
+public class SearchClientException extends Exception {
 
-    Metadata map(Metadata metadata);
+    public SearchClientException(String msg) {
+        super(msg);
+    }
+
+    public SearchClientException(Exception e) {
+        super(e);
+    }
+
+    public SearchClientException(String url, IOException e) {
+        super(url, e);
+    }
+
 }
