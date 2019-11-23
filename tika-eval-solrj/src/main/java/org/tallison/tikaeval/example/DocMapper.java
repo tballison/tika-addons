@@ -19,11 +19,13 @@ package org.tallison.tikaeval.example;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.tika.metadata.Metadata;
 
+import java.util.List;
+
 /**
  * Maps a tika metadata object to a SolrInputDocument.
  * This must be thread safe!
  */
 public interface DocMapper {
 
-    Metadata map(Metadata metadata);
+    List<Metadata> map(List<Metadata> metadata);
 }

@@ -20,6 +20,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ESClient implements SearchClient {
@@ -61,6 +62,31 @@ public class ESClient implements SearchClient {
             throw new IOException(response.getMsg());
         }
     }
+
+    @Override
+    public void addDocs(List<Metadata> metadata) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        for (Metadata m : metadata) {
+            Map<String, Object> fields = new HashMap<>();
+            for (String n : m.names()) {
+                String[] vals = m.getValues(n);
+                if (vals.length == 1) {
+                    fields.put(n, vals[0]);
+                } else {
+                    fields.put(n, vals);
+                }
+            }
+            String id = (String) fields.remove(_ID);
+            String indexJson = getBulkIndexJson(id);
+            sb.append(indexJson).append("\n");
+            sb.append(GSON.toJson(fields)).append("\n");
+        }
+        JsonResponse response = postJson(url + "/_bulk", sb.toString());
+        if (response.getStatus() != 200) {
+            throw new IOException(response.getMsg());
+        }
+    }
+
 
     @Override
     public void addDoc(Metadata metadata) throws IOException {
