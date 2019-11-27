@@ -260,6 +260,10 @@ public class Indexer {
                 m.set("container_path",
                         FilenameUtils.separatorsToUnix(
                                 rootDir.relativize(path).toString()));
+                //assume that the first directory under the root directory
+                //represents the name of the collection/sub-corpus
+                String collection = rootDir.relativize(path).getName(0).toString();
+                m.set("collection", collection);
             }
         }
     }
@@ -312,10 +316,14 @@ public class Indexer {
             if (maxDocs > 0 && numVisited >= maxDocs) {
                 return FileVisitResult.TERMINATE;
             }
-
+            Path path = (Path)file;
+            //ignore hidden files
+            if (path.getFileName().startsWith(".")) {
+                return FileVisitResult.CONTINUE;
+            }
             for (int i = 0; i < MAX_ITERATIONS; i++) {
                 try {
-                    boolean added = extracts.offer((Path) file, 1, TimeUnit.SECONDS);
+                    boolean added = extracts.offer(path, 1, TimeUnit.SECONDS);
                     if (added) {
                         numVisited++;
                         return FileVisitResult.CONTINUE;

@@ -20,14 +20,32 @@
                 "analyzer": "text_basic",
                 "type": "text"
             },
+            "authors": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "title": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "subject": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
             "is_embedded": {
                 "type": "boolean"
+            },
+            "embedded_path": {
+                "type": "keyword"
             },
             "container_id": {
                 "type": "keyword"
             },
             "container_path":{
                 "type":"keyword"                
+            },
+            "collection":{
+                "type":"keyword"
             },
             "md5":{
                 "type":"keyword"
@@ -36,25 +54,34 @@
                 "type":"keyword"
             },
             "lang": {
+                "type": "keyword",
+                "normalizer": "lc_normalizer"
+            },
+            "lang_detected": {
                 "type": "keyword"
             },
-            "lang_conf": {
+            "lang_detected_conf": {
                 "type": "double"
             },
             "length": {
-                "type": "integer"
+                "type": "integer",
+                "store": true
             },
             "num_attachments": {
-                "type":"integer"
+                "type":"integer",
+                "store": true
             },
             "num_inline_attachments": {
-                "type":"integer"
+                "type":"integer",
+                "store": true
             },
             "num_macros": {
-                "type":"integer"
+                "type":"integer",
+                "store": true
             },
             "embedded_depth": {
-                "type": "integer"
+                "type": "integer",
+                "store": true
             },
             "mime_detailed": {
                 "analyzer": "text_basic",
@@ -83,7 +110,10 @@
             "has_xmp": {
                 "type": "boolean"
             },
-            "has_acrofields": {
+            "has_acro_fields": {
+                "type": "boolean"
+            },
+            "has_signature": {
                 "type": "boolean"
             },
             "mime": {
@@ -104,6 +134,12 @@
                 "normalizer": "lc_normalizer",
                 "type": "keyword"
             },
+            "action_trigger": {
+                "type": "keyword"
+            },
+            "embedded_type": {
+                "type": "keyword"
+            },
             "signature": {
                 "type": "boolean"
             },
@@ -111,7 +147,8 @@
                 "type": "boolean"
             },
             "num_alpha_tokens": {
-                "type": "integer"
+                "type": "integer",
+                "store": true
             },
             "num_common_tokens": {
                 "type": "integer",
@@ -139,11 +176,19 @@
                 "type": "keyword"
             },
             "token_entropy": {
-                "type": "double"
+                "type": "double",
+                "index": true,
+                "store": true
             },
             "tokens_per_page": {
                 "type": "double",
-                "index": true
+                "index": true,
+                "store": true
+            },
+            "inline_attachments_per_page": {
+                "type": "double",
+                "index": true,
+                "store": true
             },
             "created":{
               "type": "date",

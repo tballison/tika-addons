@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.tika.eval.langid.Language;
@@ -67,19 +66,15 @@ public class TikaEvalDocMapper implements DocMapper {
 
     @Override
     public List<Metadata> map(List<Metadata> metadataList) {
-        String parentId = UUID.randomUUID().toString();
         int attachments = metadataList.size()-1;
         long inlineAttachments = metadataList.stream().filter( m ->
                 TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
-                        .equals(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE)).count();
+                        .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
 
         long macros = metadataList.stream().filter( m ->
                 TikaCoreProperties.EmbeddedResourceType.MACRO.toString()
-                        .equals(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE)).count();
+                        .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
 
-        metadataList.get(0).add("num_attachments", Integer.toString(attachments));
-        metadataList.get(0).add("num_inline_attachments", Long.toString(inlineAttachments));
-        metadataList.get(0).add("num_macros", Long.toString(macros));
 
         List<Metadata> ret = new ArrayList<>();
         Date containerCreated = metadataList.get(0).getDate(TikaCoreProperties.CREATED);
@@ -87,8 +82,22 @@ public class TikaEvalDocMapper implements DocMapper {
             Metadata mapped = map(metadataList.get(i));
             if (i == 0) {
                 mapped.set("is_embedded", "false");
+                mapped.set("num_attachments", Integer.toString(attachments));
+                mapped.set("num_inline_attachments", Long.toString(inlineAttachments));
+                if (metadataList.get(0).get(PagedText.N_PAGES) != null) {
+                    Integer numPages = metadataList.get(0).getInt(PagedText.N_PAGES);
+                    if (numPages != null && numPages > 0) {
+                        double numInlineAttachmentsPerPage =
+                                (double)inlineAttachments/(double)numPages;
+                        mapped.set("inline_attachments_per_page", Double.toString(numInlineAttachmentsPerPage));
+                    }
+                }
+                mapped.set("num_macros", Long.toString(macros));
             } else {
                 mapped.set("is_embedded", "true");
+                String type = metadataList.get(i).get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE);
+                type = type == null ? "attachment" : type;
+                mapped.set("embedded_type", type);
             }
             if (containerCreated != null) {
                 mapped.set(CONTAINER_CREATED, containerCreated);
@@ -98,30 +107,27 @@ public class TikaEvalDocMapper implements DocMapper {
         return ret;
     }
 
-    private void addDoc(Path path,
-                        String docId, int metadataListIndex,
-                        List<Metadata> metadataList, List<Metadata> mappedList) {
-        Metadata metadata = metadataList.get(metadataListIndex);
-        Metadata mapped = map(metadata);
-
-
-        mappedList.add(mapped);
-    }
 
     private Metadata map(Metadata metadata) {
         Metadata doc = new Metadata();
         addContent(doc, metadata);
-        if (metadata.get(TikaCoreProperties.HAS_SIGNATURE) != null) {
+        if (metadata.get(TikaCoreProperties.HAS_SIGNATURE) != null &&
+            "true".equalsIgnoreCase(metadata.get(TikaCoreProperties.HAS_SIGNATURE))) {
             doc.add("signature", "true");
+        } else {
+            doc.add("signature", "false");
         }
+
         tryToAddString(PDF.PDF_VERSION, "pdf_version", metadata, doc);
         tryToAddString(PDF.PDFA_VERSION, "pdfa_version", metadata, doc);
         tryToAddString(PDF.PDF_EXTENSION_VERSION, "pdf_extension_version", metadata, doc);
         tryToAddString(PDF.PDF_VERSION, "pdf_version", metadata, doc);
+        tryToAddString(PDF.ACTION_TRIGGER, "action_trigger", metadata, doc);
         tryToAddString(TikaCoreProperties.FORMAT, "format", metadata, doc);
-        tryToAddString(PDF.HAS_ACROFORM_FIELDS, "has_acro_fields", metadata, doc);
-        tryToAddString(PDF.HAS_XFA, "has_xfa", metadata, doc);
-        tryToAddString(PDF.HAS_XMP, "has_xmp", metadata, doc);
+        tryToAddBoolean(PDF.HAS_ACROFORM_FIELDS, "has_acro_fields", metadata, doc);
+        tryToAddBoolean(PDF.HAS_XFA, "has_xfa", metadata, doc);
+        tryToAddBoolean(PDF.HAS_XMP, "has_xmp", metadata, doc);
+        tryToAddString(TikaCoreProperties.LANGUAGE, "lang", metadata, doc);
 
         tryToAddString("X-TIKA:digest:MD5", "md5", metadata, doc);
         tryToAddString("X-TIKA:digest:SHA256", "sha256", metadata, doc);
@@ -139,7 +145,7 @@ public class TikaEvalDocMapper implements DocMapper {
                 doc.add("mime", mimeDetailed);
             }
         }
-        tryToAddString(TikaCoreProperties.HAS_SIGNATURE, "signature", metadata, doc);
+        tryToAddString(TikaCoreProperties.HAS_SIGNATURE, "has_signature", metadata, doc);
         tryToAddString(Metadata.CONTENT_TYPE, "mime_detailed", metadata, doc);
         tryToAddString(TikaCoreProperties.TITLE, "title", metadata, doc);
         tryToAddString(DublinCore.SUBJECT, "subject", metadata, doc);
@@ -152,6 +158,16 @@ public class TikaEvalDocMapper implements DocMapper {
                 "embedded_path", metadata, doc);
         handleStackTrace(getStackTrace(metadata), doc);
         return doc;
+    }
+
+    private void tryToAddBoolean(Property property, String fieldName,
+                                 Metadata metadata, Metadata doc) {
+        if (metadata.get(property) != null &&
+                metadata.get(property).equalsIgnoreCase("true")) {
+            doc.set(fieldName, "true");
+        } else {
+            doc.set(fieldName, "false");
+        }
     }
 
     private void handleStackTrace(String stackTrace, Metadata doc) {
@@ -241,8 +257,8 @@ public class TikaEvalDocMapper implements DocMapper {
         }
         List<Language> detectedLanguages = (List<Language>) stats.get(LanguageIDWrapper.class);
         if (detectedLanguages != null && detectedLanguages.size() > 0) {
-            doc.set("lang", detectedLanguages.get(0).getLanguage());
-            doc.set("lang_conf", Double.toString(detectedLanguages.get(0).getConfidence()));
+            doc.set("lang_detected", detectedLanguages.get(0).getLanguage());
+            doc.set("lang_detected_conf", Double.toString(detectedLanguages.get(0).getConfidence()));
         }
 
         if (metadata.get(PagedText.N_PAGES) != null) {
@@ -268,7 +284,7 @@ public class TikaEvalDocMapper implements DocMapper {
                 if (Double.isNaN(avg)) {
                     avg = 0.0;
                 }
-                doc.set("pdf_percent_unicode_mapped", Double.toString(avg));
+                doc.set("pdf_percent_unicode_not_mapped", Double.toString(avg));
             }
         }
     }
