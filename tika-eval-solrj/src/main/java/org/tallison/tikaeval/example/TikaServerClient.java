@@ -89,10 +89,6 @@ public class TikaServerClient implements TikaClient {
         INTERRUPTED_EXCEPTION;
     }
 
-    public TikaServerClient() {
-        this("http://localhost:9998");
-    }
-
     public TikaServerClient(String ... urls) {
         RequestConfig config = RequestConfig.custom()
                 .setConnectTimeout(TIMEOUT * 1000)
@@ -158,7 +154,7 @@ public class TikaServerClient implements TikaClient {
         HttpResponse response = null;
         try {
             response = client.execute(put);
-            LOG.info("took "+(System.currentTimeMillis()-start) +" to put2");
+            LOG.info("took "+(System.currentTimeMillis()-start) +" to get response");
         } catch (IOException e) {
             LOG.warn("couldn't connect to tika-server", e);
             //server could be offline or a bad url

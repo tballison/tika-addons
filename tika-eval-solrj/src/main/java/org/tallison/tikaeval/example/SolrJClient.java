@@ -3,12 +3,15 @@ package org.tallison.tikaeval.example;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
+import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.tika.io.IOExceptionWithCause;
 import org.apache.tika.metadata.Metadata;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SolrJClient implements SearchClient {
     private final SolrClient solrJClient;
@@ -25,6 +28,30 @@ public class SolrJClient implements SearchClient {
         } catch (SolrServerException e) {
             throw new IOExceptionWithCause(e);
         }
+    }
+
+    @Override
+    public void addDocs(List<Metadata> metadata) throws IOException {
+        List<SolrInputDocument> solrDocs = new ArrayList<>();
+        for (Metadata m : metadata) {
+            SolrInputDocument doc = new SolrInputDocument();
+            for (String n : m.names()) {
+                String[] values = m.getValues(n);
+                if (values.length == 1) {
+                    doc.setField(n, values[0]);
+                } else {
+                    doc.setField(n, values);
+                }
+            }
+            solrDocs.add(doc);
+        }
+        try {
+            solrJClient.add(solrDocs, 1000);
+        } catch (SolrServerException e) {
+            throw new IOExceptionWithCause(e);
+        }
+
+
     }
 
     @Override

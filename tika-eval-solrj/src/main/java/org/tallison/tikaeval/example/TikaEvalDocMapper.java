@@ -16,13 +16,15 @@
  */
 package org.tallison.tikaeval.example;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.tika.eval.langid.Language;
 import org.apache.tika.eval.langid.LanguageIDWrapper;
 import org.apache.tika.eval.textstats.BasicTokenCountStatsCalculator;
@@ -45,6 +47,7 @@ import org.apache.tika.sax.RecursiveParserWrapperHandler;
 public class TikaEvalDocMapper implements DocMapper {
 
     private static final int TRUNCATED_LENGTH = 1000;
+    private static final Property CONTAINER_CREATED = Property.internalDate("container_created");
 
     private final CompositeTextStatsCalculator textStatsCalculator;
 
@@ -62,15 +65,92 @@ public class TikaEvalDocMapper implements DocMapper {
     }
 
     @Override
-    public Metadata map(Metadata metadata) {
+    public List<Metadata> map(List<Metadata> metadataList) {
+        int attachments = metadataList.size()-1;
+        long inlineAttachments = metadataList.stream().filter( m ->
+                TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
+                        .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
+
+        long macros = metadataList.stream().filter( m ->
+                TikaCoreProperties.EmbeddedResourceType.MACRO.toString()
+                        .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
+
+
+        List<Metadata> ret = new ArrayList<>();
+        Date containerCreated = metadataList.get(0).getDate(TikaCoreProperties.CREATED);
+        for (int i = 0; i < metadataList.size(); i++) {
+            Metadata mapped = map(metadataList.get(i));
+            if (i == 0) {
+                mapped.set("is_embedded", "false");
+                mapped.set("num_attachments", Integer.toString(attachments));
+                mapped.set("num_inline_attachments", Long.toString(inlineAttachments));
+                if (metadataList.get(0).get(PagedText.N_PAGES) != null) {
+                    Integer numPages = metadataList.get(0).getInt(PagedText.N_PAGES);
+                    if (numPages != null && numPages > 0) {
+                        double numInlineAttachmentsPerPage =
+                                (double)inlineAttachments/(double)numPages;
+                        mapped.set("inline_attachments_per_page", Double.toString(numInlineAttachmentsPerPage));
+                    }
+                }
+                mapped.set("num_macros", Long.toString(macros));
+            } else {
+                mapped.set("is_embedded", "true");
+                String type = metadataList.get(i).get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE);
+                type = type == null ? "attachment" : type;
+                mapped.set("embedded_type", type);
+            }
+            if (containerCreated != null) {
+                mapped.set(CONTAINER_CREATED, containerCreated);
+            }
+            ret.add(mapped);
+        }
+        return ret;
+    }
+
+
+    private Metadata map(Metadata metadata) {
         Metadata doc = new Metadata();
         addContent(doc, metadata);
+        if (metadata.get(TikaCoreProperties.HAS_SIGNATURE) != null &&
+            "true".equalsIgnoreCase(metadata.get(TikaCoreProperties.HAS_SIGNATURE))) {
+            doc.add("signature", "true");
+        } else {
+            doc.add("signature", "false");
+        }
+
+        tryToAddString(PDF.PDF_VERSION, "pdf_version", metadata, doc);
+        tryToAddString(PDF.PDFA_VERSION, "pdfa_version", metadata, doc);
+        tryToAddString(PDF.PDF_EXTENSION_VERSION, "pdf_extension_version", metadata, doc);
+        tryToAddString(PDF.PDF_VERSION, "pdf_version", metadata, doc);
+        tryToAddString(PDF.ACTION_TRIGGER, "action_trigger", metadata, doc);
+        tryToAddString(TikaCoreProperties.FORMAT, "format", metadata, doc);
+        tryToAddBoolean(PDF.HAS_ACROFORM_FIELDS, "has_acro_fields", metadata, doc);
+        tryToAddBoolean(PDF.HAS_XFA, "has_xfa", metadata, doc);
+        tryToAddBoolean(PDF.HAS_XMP, "has_xmp", metadata, doc);
+        tryToAddString(TikaCoreProperties.LANGUAGE, "lang", metadata, doc);
+
+        tryToAddString("X-TIKA:digest:MD5", "md5", metadata, doc);
+        tryToAddString("X-TIKA:digest:SHA256", "sha256", metadata, doc);
         tryToAddDate(TikaCoreProperties.CREATED, "created", metadata, doc);
         tryToAddDate(TikaCoreProperties.MODIFIED, "modified", metadata, doc);
         tryToAddString(TikaCoreProperties.CREATOR, "authors", metadata, doc);
-        tryToAddString(Metadata.CONTENT_TYPE, "mime", metadata, doc);
+        String mimeDetailed = metadata.get(Metadata.CONTENT_TYPE);
+        String mime = mimeDetailed;
+        if (mimeDetailed != null) {
+            int i = mimeDetailed.indexOf(";");
+            if (i > -1) {
+                mime = mimeDetailed.substring(0, i);
+                doc.add("mime", mime);
+            } else {
+                doc.add("mime", mimeDetailed);
+            }
+        }
+        tryToAddString(TikaCoreProperties.HAS_SIGNATURE, "has_signature", metadata, doc);
+        tryToAddString(Metadata.CONTENT_TYPE, "mime_detailed", metadata, doc);
         tryToAddString(TikaCoreProperties.TITLE, "title", metadata, doc);
         tryToAddString(DublinCore.SUBJECT, "subject", metadata, doc);
+        tryToAddString(TikaCoreProperties.CREATOR_TOOL, "creator_tool", metadata, doc);
+        tryToAddString(RecursiveParserWrapperHandler.EMBEDDED_DEPTH, "embedded_depth", metadata, doc);
         if (metadata.get(Metadata.CONTENT_LENGTH) != null) {
             tryToAddString(Metadata.CONTENT_LENGTH, "length", metadata, doc);
         }
@@ -78,6 +158,16 @@ public class TikaEvalDocMapper implements DocMapper {
                 "embedded_path", metadata, doc);
         handleStackTrace(getStackTrace(metadata), doc);
         return doc;
+    }
+
+    private void tryToAddBoolean(Property property, String fieldName,
+                                 Metadata metadata, Metadata doc) {
+        if (metadata.get(property) != null &&
+                metadata.get(property).equalsIgnoreCase("true")) {
+            doc.set(fieldName, "true");
+        } else {
+            doc.set(fieldName, "false");
+        }
     }
 
     private void handleStackTrace(String stackTrace, Metadata doc) {
@@ -167,8 +257,8 @@ public class TikaEvalDocMapper implements DocMapper {
         }
         List<Language> detectedLanguages = (List<Language>) stats.get(LanguageIDWrapper.class);
         if (detectedLanguages != null && detectedLanguages.size() > 0) {
-            doc.set("lang", detectedLanguages.get(0).getLanguage());
-            doc.set("lang_conf", Double.toString(detectedLanguages.get(0).getConfidence()));
+            doc.set("lang_detected", detectedLanguages.get(0).getLanguage());
+            doc.set("lang_detected_conf", Double.toString(detectedLanguages.get(0).getConfidence()));
         }
 
         if (metadata.get(PagedText.N_PAGES) != null) {
@@ -194,7 +284,7 @@ public class TikaEvalDocMapper implements DocMapper {
                 if (Double.isNaN(avg)) {
                     avg = 0.0;
                 }
-                doc.set("pdf_percent_unicode_mapped", Double.toString(avg));
+                doc.set("pdf_percent_unicode_not_mapped", Double.toString(avg));
             }
         }
     }

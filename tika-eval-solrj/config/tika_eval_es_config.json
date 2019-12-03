@@ -1,0 +1,243 @@
+{
+    "index_patterns": [
+        "tika_eval"
+    ],
+    "mappings": {
+        "_meta": {
+            "version": "7.4.2"
+        },
+        "dynamic": "false",
+        "properties": {
+            "@timestamp": {
+                "type": "date"
+            },
+            "content": {
+                "analyzer": "text_basic",
+                "type": "text",
+                "index_options": "offsets"
+            },
+            "content_trunc": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "authors": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "title": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "subject": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "is_embedded": {
+                "type": "boolean"
+            },
+            "embedded_path": {
+                "type": "keyword"
+            },
+            "container_id": {
+                "type": "keyword"
+            },
+            "container_path":{
+                "type":"keyword"                
+            },
+            "collection":{
+                "type":"keyword"
+            },
+            "md5":{
+                "type":"keyword"
+            },
+            "sha256":{
+                "type":"keyword"
+            },
+            "lang": {
+                "type": "keyword",
+                "normalizer": "lc_normalizer"
+            },
+            "lang_detected": {
+                "type": "keyword"
+            },
+            "lang_detected_conf": {
+                "type": "double"
+            },
+            "length": {
+                "type": "integer",
+                "store": true
+            },
+            "num_attachments": {
+                "type":"integer",
+                "store": true
+            },
+            "num_inline_attachments": {
+                "type":"integer",
+                "store": true
+            },
+            "num_macros": {
+                "type":"integer",
+                "store": true
+            },
+            "embedded_depth": {
+                "type": "integer",
+                "store": true
+            },
+            "mime_detailed": {
+                "analyzer": "text_basic",
+                "copy_to": "mime_detailed_facet",
+                "type": "text"
+            },
+            "mime_detailed_facet": {
+                "normalizer": "lc_normalizer",
+                "type": "keyword"
+            },
+            "pdf_version": {
+                "type": "keyword"
+            },
+            "pdf_extension_version": {
+                "type": "keyword"
+            },
+            "pdfa_version": {
+                "type": "keyword"
+            },
+            "format": {
+                "type": "keyword"
+            },
+            "has_xfa": {
+                "type": "boolean"
+            },
+            "has_xmp": {
+                "type": "boolean"
+            },
+            "has_acro_fields": {
+                "type": "boolean"
+            },
+            "has_signature": {
+                "type": "boolean"
+            },
+            "mime": {
+                "analyzer": "text_basic",
+                "copy_to": "mime_facet",
+                "type": "text"
+            },
+            "mime_facet": {
+                "normalizer": "lc_normalizer",
+                "type": "keyword"
+            },
+            "creator_tool": {
+                "analyzer": "text_basic",
+                "copy_to": "creator_tool_facet",
+                "type": "text"
+            },
+            "creator_tool_facet": {
+                "normalizer": "lc_normalizer",
+                "type": "keyword"
+            },
+            "action_trigger": {
+                "type": "keyword"
+            },
+            "embedded_type": {
+                "type": "keyword"
+            },
+            "signature": {
+                "type": "boolean"
+            },
+            "missing_content": {
+                "type": "boolean"
+            },
+            "num_alpha_tokens": {
+                "type": "integer",
+                "store": true
+            },
+            "num_common_tokens": {
+                "type": "integer",
+                "index": true,
+                "store": true
+            },
+            "num_tokens": {
+                "type": "integer",
+                "index": true
+            },
+            "oov": {
+                "type": "double",
+                "store": true
+            },
+            "pdf_percent_unicode_mapped": {
+                "type": "double",
+                "store": true
+            },
+            "stacktrace": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "stacktrace_facet": {
+                "normalizer": "lc_normalizer",
+                "type": "keyword"
+            },
+            "token_entropy": {
+                "type": "double",
+                "index": true,
+                "store": true
+            },
+            "tokens_per_page": {
+                "type": "double",
+                "index": true,
+                "store": true
+            },
+            "inline_attachments_per_page": {
+                "type": "double",
+                "index": true,
+                "store": true
+            },
+            "created":{
+              "type": "date",
+              "store": true
+            },
+            "container_created":{
+              "type": "date",
+              "store": true
+            },
+            "modified":{
+              "type": "date",
+              "store": true
+            }
+        }
+    },
+    "settings": {
+        "index": {
+            "analysis": {
+                "analyzer": {
+                    "text_basic": {
+                        "filter": [
+                            "lowercase",
+                            "asciifolding",
+                            "trim_final_period"
+                        ],
+                        "tokenizer": "uax_url_email",
+                        "type": "custom"
+                    }
+                },
+                "filter": {
+                    "trim_final_period": {
+                        "pattern": "\\.$",
+                        "replacement": "",
+                        "type": "pattern_replace"
+                    }
+                },
+                "normalizer": {
+                    "lc_normalizer": {
+                        "char_filter": [],
+                        "filter": [
+                            "lowercase",
+                            "asciifolding"
+                        ],
+                        "type": "custom"
+                    }
+                }
+            },
+            "number_of_replicas": "1",
+            "number_of_shards": "1"
+        }
+    }
+}

@@ -16,9 +16,7 @@
  */
 package org.tallison.tikaeval.example;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -43,15 +41,15 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * As currently configured, this expects file path processing and a few other features.
+ * java -cp "bin/*" org.apache.tika.server.TikaServerCli -spawnChild -s -c tika_pdfs.xml -enableUnsecureFeatures -enableFileUrl -d md5,sha256
+ */
 public class Indexer {
     private static final int WITHIN_MS = 10000;
     private static final int DEFAULT_NUMBER_OF_THREADS = 5;
@@ -158,16 +156,22 @@ public class Indexer {
                     Integer val = future.get();
                     completed++;
                 } catch (InterruptedException | ExecutionException e) {
+                    shutdown(start, service);
                     throw new RuntimeException(e);
                 }
             }
-            long elapsed = System.currentTimeMillis() - start;
-            LOG.info("finished indexing in " + elapsed + " milliseconds");
-            service.shutdown();
-            service.shutdownNow();
-            elapsed = System.currentTimeMillis() - start;
-            LOG.info("finished the commit in " + elapsed + " milliseconds");
+            shutdown(start, service);
         }
+    }
+
+    private void shutdown(long start, ExecutorService service) {
+        long elapsed = System.currentTimeMillis() - start;
+        LOG.info("finished indexing in " + elapsed + " milliseconds");
+        service.shutdown();
+        service.shutdownNow();
+        elapsed = System.currentTimeMillis() - start;
+        LOG.info("finished the commit in " + elapsed + " milliseconds");
+
     }
 
 
@@ -217,8 +221,8 @@ public class Indexer {
                     metadataList.get(0).set(Metadata.CONTENT_LENGTH, Long.toString(length));
                 }
                 int total = DOCS_INDEXED.incrementAndGet();
-                LOG.info("completed "+path +" in "+(System.currentTimeMillis()-start)
-                        + " millis ("+total+" docs total)");
+                LOG.info("completed " + path + " in " + (System.currentTimeMillis() - start)
+                        + " millis (" + total + " docs total)");
             } catch (IOException | TikaClientException e) {
                 LOG.warn("serious problem with parse", e);
             }
@@ -228,38 +232,41 @@ public class Indexer {
         }
 
         private void addDocs(Path path, List<Metadata> metadataList) {
-            String parentId = UUID.randomUUID().toString();
-            for (int i = 0; i < metadataList.size(); i++) {
-                String docId = (i == 0) ? parentId : UUID.randomUUID().toString();
-                addDoc(path, parentId, docId, i, metadataList);
+            if (metadataList == null || metadataList.size() == 0) {
+                return;
             }
-        }
+            List<Metadata> mapped = docMapper.map(metadataList);
+            addIds(path, mapped);
 
-        private void addDoc(Path path, String parentId,
-                            String docId, int metadataListIndex,
-                            List<Metadata> metadataList) {
-            Metadata metadata = metadataList.get(metadataListIndex);
-            Metadata mapped = docMapper.map(metadata);
-
-            if (metadataListIndex == 0) {
-                mapped.set("is_embedded", "false");
-            } else {
-                mapped.set("is_embedded", "true");
-            }
-            mapped.set(searchClient.getIdField(), docId);
-            mapped.set("parent_id", parentId);
-            mapped.set("path",
-                    FilenameUtils.separatorsToUnix(
-                            rootDir.relativize(path).toString()));
+            long start = System.currentTimeMillis();
             try {
-                searchClient.addDoc(mapped);
+                searchClient.addDocs(mapped);
             } catch (IOException e) {
                 LOG.warn("problem adding doc", e);
             }
+            long elapsed = System.currentTimeMillis() - start;
+            LOG.info("finished sending to the index in " + elapsed + " millis");
+
         }
 
-    }
+        private void addIds(Path path, List<Metadata> metadataList) {
+            String containerId = UUID.randomUUID().toString();
+            for (int i = 0; i < metadataList.size(); i++) {
+                Metadata m = metadataList.get(i);
+                String docId = (i == 0) ? containerId : UUID.randomUUID().toString();
 
+                m.set(searchClient.getIdField(), docId);
+                m.set("container_id", containerId);
+                m.set("container_path",
+                        FilenameUtils.separatorsToUnix(
+                                rootDir.relativize(path).toString()));
+                //assume that the first directory under the root directory
+                //represents the name of the collection/sub-corpus
+                String collection = rootDir.relativize(path).getName(0).toString();
+                m.set("collection", collection);
+            }
+        }
+    }
     private class PathCrawler implements Callable<Integer> {
         private final ArrayBlockingQueue<Path> extracts;
         private final int numThreads;
@@ -273,7 +280,7 @@ public class Indexer {
         public Integer call() throws Exception {
             Files.walkFileTree(rootDir, new PathAdder(extracts));
             for (int i = 0; i < numThreads; i++) {
-                for (int j = 0; j < 60; j++) {
+                for (int j = 0; j < 120; j++) {
                     try {
                         boolean added = extracts.offer(POISON, SECOND_DELAY, TimeUnit.SECONDS);
                         if (added) {
@@ -283,7 +290,7 @@ public class Indexer {
                         LOG.warn("interrupted");
                     }
                     LOG.warn("couldn't add poison");
-                    throw new RuntimeException("Couldn't add poison after 60 seconds");
+                    throw new RuntimeException("Couldn't add poison after 120 seconds");
                 }
             }
             return 1;
@@ -309,10 +316,14 @@ public class Indexer {
             if (maxDocs > 0 && numVisited >= maxDocs) {
                 return FileVisitResult.TERMINATE;
             }
-
+            Path path = (Path)file;
+            //ignore hidden files
+            if (path.getFileName().startsWith(".")) {
+                return FileVisitResult.CONTINUE;
+            }
             for (int i = 0; i < MAX_ITERATIONS; i++) {
                 try {
-                    boolean added = extracts.offer((Path) file, 1, TimeUnit.SECONDS);
+                    boolean added = extracts.offer(path, 1, TimeUnit.SECONDS);
                     if (added) {
                         numVisited++;
                         return FileVisitResult.CONTINUE;
