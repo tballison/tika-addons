@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Indexer {
     private static final int WITHIN_MS = 10000;
-    private static final int DEFAULT_NUMBER_OF_THREADS = 5;
+    private static final int DEFAULT_NUMBER_OF_THREADS = 6;
     private static final int SECOND_DELAY = 1;
     private static final int MAX_ITERATIONS = 120;//3 minutes
 
