@@ -45,6 +45,7 @@
       <module>tika-eval-solrj</module>
       <module>solr-integration-tests</module>
       <module>bugtracker-crawler</module>
+    <module>solr-tika-integration</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
