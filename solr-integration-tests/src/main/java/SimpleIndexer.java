@@ -8,7 +8,7 @@ import java.io.File;
 public class SimpleIndexer {
 
     public static void main(String[] args) throws Exception {
-        File fileDir = new File("/home/tim/data/tika-test-documents");
+        File fileDir = new File("/Users/allison/data/tika-test-documents");
         SolrClient client = new HttpSolrClient.Builder(
                 "http://localhost:8983/solr/tika-integration-example").build();
         for (File f : fileDir.listFiles()) {

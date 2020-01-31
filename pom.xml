@@ -43,7 +43,8 @@
       <module>zip-dumper</module>
       <module>lang-id</module>
       <module>tika-eval-solrj</module>
-    <module>solr-integration-tests</module>
+      <module>solr-integration-tests</module>
+      <module>bugtracker-crawler</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
