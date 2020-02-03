@@ -21,10 +21,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,36 +50,16 @@ public class BugzillaScraper {
 Thanks to @triagegirl for noting that bugzilla has an API!!!
  */
     /**
-     * TODO: need to add an optional product, e.g. &product=POI
      * TODO: automatically figure out if the url needs .cgi?
      * TODO: consider gzipping .json issue files to save space
      */
 
-    /* the base url should include the rest.cgi component -- some require .cgi, some don't.
-        https://bz.apache.org/bugzilla/rest.cgi POI -- must specify &product=POI
-        https://bugs.documentfoundation.org/rest/bug/  libre office
-        https://bz.apache.org/ooo/rest.cgi  open office
-        https://bugs.ghostscript.com/rest.cgi  ghostscript
+    /*
+        -p OOO -u https://bz.apache.org/ooo -m application -o /docs/ooo -s 10
+        -p POI -u https://bz.apache.org/bugzilla/ -m application -o /docs/poi -d POI -s 10
+        -p LIBRE_OFFICE -u https://bugs.documentfoundation.org/ -m application -o /Users/allison/Desktop/libre -s 10
+        -p GHOSTSCRIPT -u https://bugs.ghostscript.com/ -m application -o /Users/allison/Desktop/ghostscript -s 10
      */
-    //poi
-/*    private static String INITIAL_QUERY =
-            "https://bz.apache.org/bugzilla/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW" +
-                    "&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=NEEDINFO&bug_status=RESOLVED" +
-                    "&bug_status=VERIFIED&bug_status=CLOSED&f1=attachments.mimetype&j_top=OR" +
-                    "&limit=0&list_id=186475&o1=anywordssubstr&order=priority%2Cbug_severity" +
-                    "&product=POI&query_format=advanced&resolution=---&resolution=FIXED" +
-                    "&resolution=INVALID&resolution=WONTFIX&resolution=LATER&resolution=REMIND" +
-                    "&resolution=DUPLICATE&resolution=WORKSFORME&resolution=MOVED&resolution=CLOSED" +
-                    "&resolution=INFORMATIONPROVIDED&v1=application%20image%20video%20audio";
-*/
-
-//    private static String ISSUE_URL_BASE = "https://bz.apache.org/bugzilla/rest.cgi/bug/";
-//open office
-    private static String INITIAL_QUERY = "https://bz.apache.org/ooo/buglist.cgi?bug_status=UNCONFIRMED&bug_status=CONFIRMED&bug_status=ACCEPTED" +
-            "&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&f1=attachments.mimetype&limit=0&o1=anywordssubstr&order=bug_status%2Cpriority%2Cassigned_to%2Cbug_id" +
-            "&query_format=advanced&resolution=---&resolution=FIXED&resolution=FIXED_WITHOUT_CODE" +
-            "&resolution=DUPLICATE&resolution=IRREPRODUCIBLE&resolution=NOT_AN_OOO_ISSUE" +
-            "&resolution=WONT_FIX&resolution=OBSOLETE&v1=pdf";
 
     private static String LIMIT = "&limit="; //how many results to bring back
     private static String OFFSET = "&offset="; //start at ...how far into the results to return.
@@ -87,7 +71,19 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             "&o1=anywordssubstr" + //require any word to match
             "&f1=attachments.mimetype&v1="; //key words to match
 
+
+    static Options OPTIONS = new Options()
+                .addOption("u", "baseUrl", true, "base url")
+                .addOption("o", "outputDir", true, "directory to dump the data")
+                .addOption("p", "project", true, "project name for the issue number labels 'POI' for POI-32132")
+                .addOption("d", "product", true,
+                        "optional specification of a product with a project, like POI")
+                .addOption("m", "mimeMatch", true, "required: terms in the mime for matching")
+                .addOption("k", "apiKey", true, "(optional) api key")
+                .addOption("s", "size", true, "page result size");
+
     int pageResultSize = 2;
+    String restCGI = "rest.cgi/";
 
     private DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssVV");
@@ -96,10 +92,12 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     private final String baseUrl;
     private final Path rootDir;
     private final String mimeTypeStrings;
-    private final String apiKey;
+    private final String product;//can be empty string
+    private final String apiKey;//can be empty string
 
     public BugzillaScraper(String project, String baseUrl,
-                           String mimeTypeStrings, Path path, String apiKey) {
+                           String mimeTypeStrings, Path path,
+                           String apiKey, String product) {
         this.project = project;
         this.baseUrl = baseUrl;
         this.rootDir = path;
@@ -107,22 +105,50 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (StringUtils.isBlank(apiKey)) {
             this.apiKey = "";
         } else {
-            this.apiKey = "?api_key=" + apiKey;
+            this.apiKey = "&api_key=" + apiKey;
+        }
+        if (StringUtils.isBlank(product)) {
+            this.product = "";
+        } else {
+            this.product = "&product="+apiKey;
         }
     }
 
     public static void main(String[] args) throws Exception {
-        String project = args[0];
-        String baseUrl = args[1];
-        String mimeTypeStrings = args[2];
-        Path outputDir = Paths.get(args[3]);
+        DefaultParser defaultCLIParser = new DefaultParser();
+        CommandLine commandLine = null;
+        try {
+            commandLine = defaultCLIParser.parse(OPTIONS, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            //TODO: USAGE();
+            return;
+        }
+        String project = commandLine.getOptionValue("p");
+        String baseUrl = commandLine.getOptionValue("u");
+        if (! baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
+        String mimeTypeStrings = URLEncoder.encode(commandLine.getOptionValue("m"));
+        Path outputDir = Paths.get(commandLine.getOptionValue("o"));
         String apiKey = "";
-        if (args.length > 4) {
-            apiKey = args[4];
+        if (commandLine.hasOption("k")) {
+            apiKey = commandLine.getOptionValue("k");
+        }
+        String product = "";
+        if (commandLine.hasOption("d")) {
+            product = commandLine.getOptionValue("d");
         }
         BugzillaScraper scraper = new BugzillaScraper(project,
-                baseUrl, mimeTypeStrings, outputDir, apiKey);
+                baseUrl, mimeTypeStrings, outputDir, apiKey, product);
+        if (commandLine.hasOption("s")) {
+            scraper.setPageResultSize(Integer.parseInt(commandLine.getOptionValue("s")));
+        }
         scraper.execute();
+    }
+
+    private void setPageResultSize(int s) {
+        this.pageResultSize = s;
     }
 
     private void execute() throws IOException, ClientException {
@@ -153,9 +179,20 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private List<String> getIssueIds(int offset, int pageSize) throws ClientException {
-        String url = baseUrl+generalQueryByURL+mimeTypeStrings +
-                LIMIT+pageSize+OFFSET+offset;
-        byte[] bytes = HttpUtils.get(url);
+        String url = getIssueIdUrl(offset, pageSize);
+        byte[] bytes = null;
+        if (offset == 0) {
+            try {
+                bytes = HttpUtils.get(url);
+            } catch (ClientException e) {
+                //try removing the .cgi
+                restCGI = "rest/";
+                url = getIssueIdUrl(offset, pageSize);
+                bytes = HttpUtils.get(url);
+            }
+        } else {
+            bytes = HttpUtils.get(url);
+        }
         String json = new String(bytes, StandardCharsets.UTF_8);
         JsonElement root = JsonParser.parseString(json);
         if (! root.isJsonObject()) {
@@ -180,6 +217,20 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         return ids;
     }
 
+    private String getIssueIdUrl(int offset, int pageSize) {
+        String url = baseUrl+restCGI+generalQueryByURL+mimeTypeStrings +
+                LIMIT+pageSize+OFFSET+offset;
+
+        if (! StringUtils.isBlank(apiKey)) {
+            url += "&api_key="+apiKey;
+        }
+
+        if (! StringUtils.isBlank(product)) {
+            url += "&product="+product;
+        }
+        return url;
+    }
+
     private boolean processIssue(String issueId) throws IOException, ClientException {
         Path jsonMetadataPath = rootDir.resolve("metadata/"+project+"-" + issueId + ".json");
         boolean networkCall = false;
@@ -187,7 +238,15 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (Files.isRegularFile(jsonMetadataPath)) {
             jsonBytes = Files.readAllBytes(jsonMetadataPath);
         } else {
-            String url = baseUrl+"/bug/" + issueId + "/attachment" + apiKey;
+            String url = baseUrl+restCGI+"/bug/" + issueId + "/attachment";
+            if (! StringUtils.isBlank(apiKey)) {
+                url += "?api_key="+apiKey;
+                if (! StringUtils.isBlank(product)) {
+                    url += "&product="+product;
+                }
+            } else if (! StringUtils.isBlank(product)) {
+                url += "?product="+product;
+            }
             networkCall = true;
             try {
                 jsonBytes = HttpUtils.get(url);
