@@ -21,6 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -44,25 +45,20 @@ public class BugzillaScraper {
 /*
 Thanks to @triagegirl for noting that bugzilla has an API!!!
  */
+    /**
+     * TODO: need to add an optional product, e.g. &product=POI
+     * TODO: automatically figure out if the url needs .cgi?
+     * TODO: consider gzipping .json issue files to save space
+     */
 
-  /*  //all statuses, resolutions.  only application/audio/video ignore text,html
-  This initial query didn't actually work programmatically. It worked in the browser manually.
-  So, I downloaded it and put it in the right place in the directory.
-    private static String INITIAL_QUERY =
-            "https://bugs.ghostscript.com/buglist.cgi?bug_status=UNCONFIRMED&bug_status=" +
-                    "CONFIRMED&bug_status=IN_PROGRESS&bug_status=AWAITING_REVIEW" +
-                    "&bug_status=RESOLVED&bug_status=NOTIFIED&f1=attachments.mimetype" +
-                    "&limit=0&o1=anywordssubstr&order=priority%2Cbug_severity" +
-                    "&query_format=advanced&resolution=---&resolution=FIXED" +
-                    "&resolution=INVALID&resolution=WONTFIX&resolution=LATER" +
-                    "&resolution=REMIND&resolution=DUPLICATE&resolution=WORKSFORME" +
-                    "&resolution=MOVED&v1=application%20image%20video%20audio";
-    private static String ISSUE_URL_BASE = "https://bugs.ghostscript.com/rest.cgi/bug/";
-*/
-
-    /*
+    /* the base url should include the rest.cgi component -- some require .cgi, some don't.
+        https://bz.apache.org/bugzilla/rest.cgi POI -- must specify &product=POI
+        https://bugs.documentfoundation.org/rest/bug/  libre office
+        https://bz.apache.org/ooo/rest.cgi  open office
+        https://bugs.ghostscript.com/rest.cgi  ghostscript
+     */
     //poi
-    private static String INITIAL_QUERY =
+/*    private static String INITIAL_QUERY =
             "https://bz.apache.org/bugzilla/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW" +
                     "&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=NEEDINFO&bug_status=RESOLVED" +
                     "&bug_status=VERIFIED&bug_status=CLOSED&f1=attachments.mimetype&j_top=OR" +
@@ -71,6 +67,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                     "&resolution=INVALID&resolution=WONTFIX&resolution=LATER&resolution=REMIND" +
                     "&resolution=DUPLICATE&resolution=WORKSFORME&resolution=MOVED&resolution=CLOSED" +
                     "&resolution=INFORMATIONPROVIDED&v1=application%20image%20video%20audio";
+*/
 
 //    private static String ISSUE_URL_BASE = "https://bz.apache.org/bugzilla/rest.cgi/bug/";
 //open office
@@ -80,23 +77,33 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             "&resolution=DUPLICATE&resolution=IRREPRODUCIBLE&resolution=NOT_AN_OOO_ISSUE" +
             "&resolution=WONT_FIX&resolution=OBSOLETE&v1=pdf";
 
-    private static String ISSUE_URL_BASE = "https://bz.apache.org/ooo/rest.cgi/bug/";
-*/
+    private static String LIMIT = "&limit="; //how many results to bring back
+    private static String OFFSET = "&offset="; //start at ...how far into the results to return.
 
-    //libre office
-    private static String INITIAL_QUERY = "https://bugs.documentfoundation.org/buglist.cgi?bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&bug_status=NEEDINFO&f1=attachments.mimetype&limit=0&o1=anywordssubstr&order=changeddate%2Cpriority%2Cbug_severity&query_format=advanced&resolution=---&resolution=FIXED&resolution=INVALID&resolution=WONTFIX&resolution=DUPLICATE&resolution=WORKSFORME&resolution=MOVED&resolution=NOTABUG&resolution=NOTOURBUG&resolution=INSUFFICIENTDATA&v1=pdf";
-    //note no .cgi!
-    private static String ISSUE_URL_BASE = "https://bugs.documentfoundation.org/rest/bug/";
+    private String generalQueryByURL = "/bug?" +
+            "include_fields=id" + //only bring back the id field
+            "&order=bug_id%20DESC" + //order consistently by bug id desc -- completely arbitrary
+            "&query_format=advanced" +
+            "&o1=anywordssubstr" + //require any word to match
+            "&f1=attachments.mimetype&v1="; //key words to match
+
+    int pageResultSize = 2;
+
     private DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssVV");
 
     private final String project;
+    private final String baseUrl;
     private final Path rootDir;
+    private final String mimeTypeStrings;
     private final String apiKey;
 
-    public BugzillaScraper(String project, Path path, String apiKey) {
+    public BugzillaScraper(String project, String baseUrl,
+                           String mimeTypeStrings, Path path, String apiKey) {
         this.project = project;
-        rootDir = path;
+        this.baseUrl = baseUrl;
+        this.rootDir = path;
+        this.mimeTypeStrings = mimeTypeStrings;
         if (StringUtils.isBlank(apiKey)) {
             this.apiKey = "";
         } else {
@@ -106,12 +113,15 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
 
     public static void main(String[] args) throws Exception {
         String project = args[0];
+        String baseUrl = args[1];
+        String mimeTypeStrings = args[2];
+        Path outputDir = Paths.get(args[3]);
         String apiKey = "";
-        if (args.length > 2) {
-            apiKey = args[2];
+        if (args.length > 4) {
+            apiKey = args[4];
         }
         BugzillaScraper scraper = new BugzillaScraper(project,
-                Paths.get(args[1]), apiKey);
+                baseUrl, mimeTypeStrings, outputDir, apiKey);
         scraper.execute();
     }
 
@@ -119,23 +129,55 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         Files.createDirectories(rootDir);
         Files.createDirectories(rootDir.resolve("metadata"));
 
-        Set<String> issueIds = getIssueIds(INITIAL_QUERY);
-        List<String> issueList = new ArrayList<>();
-        issueList.addAll(issueIds);
-        Collections.sort(issueList, Collections.reverseOrder());
-        System.out.println("found " + issueList);
-        System.out.println("\n\nnum issues: " + issueList.size());
-        boolean networkCall = false;
-        for (String issueId : issueList) {
-            networkCall = processIssue(issueId);
-            if (networkCall) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+        int offset = 0;
+        while (true) {
+            List<String> issueIds = getIssueIds(offset, pageResultSize);
+            if (issueIds.size() == 0) {
+                break;
+            }
+            System.out.println("found " + issueIds);
+            System.out.println("\n\nnum issues: " + issueIds.size());
+            boolean networkCall = false;
+            for (String issueId : issueIds) {
+                networkCall = processIssue(issueId);
+                if (networkCall) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            offset += pageResultSize;
+        }
+    }
+
+    private List<String> getIssueIds(int offset, int pageSize) throws ClientException {
+        String url = baseUrl+generalQueryByURL+mimeTypeStrings +
+                LIMIT+pageSize+OFFSET+offset;
+        byte[] bytes = HttpUtils.get(url);
+        String json = new String(bytes, StandardCharsets.UTF_8);
+        JsonElement root = JsonParser.parseString(json);
+        if (! root.isJsonObject()) {
+            return Collections.EMPTY_LIST;
+        }
+        JsonElement bugs = root.getAsJsonObject().get("bugs");
+        if (bugs == null || bugs.isJsonNull()) {
+            return Collections.EMPTY_LIST;
+        }
+        if (! bugs.isJsonArray()) {
+            return Collections.EMPTY_LIST;
+        }
+        List<String> ids = new ArrayList<>();
+        for (JsonElement idObj : bugs.getAsJsonArray()) {
+            if (idObj.isJsonObject()) {
+                String id = getAsString(idObj.getAsJsonObject(), "id");
+                if (! StringUtils.isAllBlank(id)) {
+                    ids.add(id);
                 }
             }
         }
+        return ids;
     }
 
     private boolean processIssue(String issueId) throws IOException, ClientException {
@@ -145,7 +187,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (Files.isRegularFile(jsonMetadataPath)) {
             jsonBytes = Files.readAllBytes(jsonMetadataPath);
         } else {
-            String url = ISSUE_URL_BASE + issueId + "/attachment" + apiKey;
+            String url = baseUrl+"/bug/" + issueId + "/attachment" + apiKey;
             networkCall = true;
             try {
                 jsonBytes = HttpUtils.get(url);
@@ -210,7 +252,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                 e.printStackTrace();
             }
         } else {
-            System.err.println("emtpy data for: "+issueId + " "+i);
+            System.err.println("empty data for: "+issueId + " "+i);
         }
     }
 
