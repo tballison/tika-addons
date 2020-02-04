@@ -47,8 +47,13 @@ import org.slf4j.LoggerFactory;
 public class TikaServerClient implements TikaClient {
 
     enum INPUT_METHOD {
-        FILE,
-        INPUTSTREAM
+        INPUTSTREAM, //classic use of tika-server the client will put the bytes
+        FILE//POTENTIALLY INSECURE:
+            // the client will send the file path for tika-server to read the file, rather
+            //than putting the bytes.  For this to work, tika-server must be started with
+            //-enableUnsecureFeatures -enableFileUrl
+            //https://cwiki.apache.org/confluence/display/TIKA/TikaJAXRS#TikaJAXRS-SpecifyingaURLInsteadofPuttingBytes
+
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(TikaServerClient.class);
