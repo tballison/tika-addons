@@ -84,7 +84,7 @@ public class Indexer {
                 .addOption(Option.builder("s")
                         .required()
                         .hasArg()
-                        .desc("solr url")
+                        .desc("search server (solr|elastic) url")
                         .build())
                 .addOption(Option.builder("n")
                         .longOpt("numThreads")
@@ -96,7 +96,13 @@ public class Indexer {
                                 .longOpt("maxDocs")
                                 .hasArg(true)
                                 .required(false)
-                                .desc("maximum number of documents to index").build());
+                                .desc("maximum number of documents to index").build())
+                .addOption(Option.builder("f")
+                        .longOpt("filenames")
+                        .hasArg(false)
+                        .required(false)
+                        .desc("should the client send a file name to tika-server " +
+                                "(in insecure mode) or send the bytes").build());
     }
 
     private final Path rootDir;
@@ -108,7 +114,6 @@ public class Indexer {
     public static void main(String[] args) throws Exception {
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine = parser.parse(OPTIONS, args);
-        TikaClient tikaClient = TikaClientFactory.getClient(commandLine);
         Path rootDir = TikaClientFactory.getRootDir(commandLine);
         Indexer indexer = new Indexer(rootDir);
 
@@ -216,7 +221,7 @@ public class Indexer {
             try (TikaInputStream tis = TikaInputStream.get(path)) {
                 long length = Files.size(path);
                 long start = System.currentTimeMillis();
-                metadataList = tikaClient.parse(tis);
+                metadataList = tikaClient.parse(path.getFileName().toString(), tis);
                 if (metadataList.size() > 0) {
                     metadataList.get(0).set(Metadata.CONTENT_LENGTH, Long.toString(length));
                 }

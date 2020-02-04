@@ -32,12 +32,13 @@ import org.apache.tika.metadata.serialization.JsonMetadataList;
 
 public class TikaExtractClient implements TikaClient {
 
-    public List<Metadata> parse(TikaInputStream is) throws TikaClientException {
+    @Override
+    public List<Metadata> parse(String fileKey, TikaInputStream is) throws TikaClientException {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(is, StandardCharsets.UTF_8))) {
             return JsonMetadataList.fromJson(reader);
         } catch (IOException | TikaException e) {
-            throw new TikaClientException("problem w extract", e);
+            throw new TikaClientException("problem w extract: "+fileKey, e);
         }
     }
 }

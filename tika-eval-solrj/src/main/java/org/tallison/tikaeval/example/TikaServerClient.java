@@ -16,39 +16,23 @@
  */
 package org.tallison.tikaeval.example;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.GzipCompressingEntity;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.IOUtils;
 import org.apache.tika.io.TikaInputStream;
@@ -62,11 +46,16 @@ import org.slf4j.LoggerFactory;
  */
 public class TikaServerClient implements TikaClient {
 
+    enum INPUT_METHOD {
+        FILE,
+        INPUTSTREAM
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(TikaServerClient.class);
 
     private final static String END_POINT = "/rmeta/text";
     private final static int MAX_TRIES = 3;
-    private final static int TIMEOUT = 6000; // seconds
+    private final static int TIMEOUT_SECONDS = 360; // seconds
 
     //if there are retries, what is the maximum amount of millis
     private final static long MAX_TIME_FOR_RETRIES_MILLIS = 30000;
@@ -77,6 +66,7 @@ public class TikaServerClient implements TikaClient {
 
     private final HttpClient client;
     private final List<String> urls;
+    private final INPUT_METHOD inputMethod;
     private enum STATE {
         NO_RESPONSE_IO_EXCEPTION,
         RESPONSE_NON_200_STATUS,
@@ -89,25 +79,24 @@ public class TikaServerClient implements TikaClient {
         INTERRUPTED_EXCEPTION;
     }
 
-    public TikaServerClient(String ... urls) {
+    public TikaServerClient(INPUT_METHOD inputMethod, String ... urls) {
+        this.inputMethod = inputMethod;
         RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(TIMEOUT * 1000)
-                .setConnectionRequestTimeout(TIMEOUT * 1000)
-                .setSocketTimeout(TIMEOUT * 1000).build();
+                .setConnectTimeout(TIMEOUT_SECONDS * 1000)
+                .setConnectionRequestTimeout(TIMEOUT_SECONDS * 1000)
+                .setSocketTimeout(TIMEOUT_SECONDS * 1000).build();
         this.client = HttpClients.custom().setDefaultRequestConfig(config).build();
         this.urls = new ArrayList<>();
         for (String u : urls) {
             this.urls.add(u + END_POINT);
         }
     }
-    public List<Metadata> parse(TikaInputStream tis) throws TikaClientException {
-        Path p = null;
-        try {
-            p = tis.getPath();
-        } catch (IOException e) {
-            throw new TikaClientException("IOException getting inputstream", e);
-        }
-        TikaServerResponse response = tryParse(p);
+
+    @Override
+    public List<Metadata> parse(String fileKey, TikaInputStream tis)
+            throws IOException, TikaClientException {
+
+        TikaServerResponse response = tryParse(fileKey, tis);
 
         int tries = 1;
         long retryStart = System.currentTimeMillis();
@@ -119,9 +108,9 @@ public class TikaServerClient implements TikaClient {
                 && retryElapsed < MAX_TIME_FOR_RETRIES_MILLIS) {
             LOG.warn(String.format(Locale.US,
                     "Retrying '%s' because of %s",
-                    p.getFileName().toString(),
+                    fileKey,
                     response.state.toString()));
-            response = tryParse(p);
+            response = tryParse(fileKey, tis);
             //if there was no connection to the server,
             //decrement the tries and wait a bit before trying again
             if (response.state == STATE.NO_RESPONSE_IO_EXCEPTION) {
@@ -141,16 +130,32 @@ public class TikaServerClient implements TikaClient {
         throw new TikaClientException(
                 String.format(Locale.US,
                         "Couldn't parse file (%s); state=%s",
-                        p.getFileName().toString(),
+                        fileKey,
                         response.state.toString()));
     }
 
-    private TikaServerResponse tryParse(Path path) {
+    private TikaServerResponse tryParse(String fileKey, TikaInputStream is) throws IOException {
         int index = ThreadLocalRandom.current().nextInt(urls.size());
-        long start = System.currentTimeMillis();
+        HttpPut put = new HttpPut(urls.get(index));
+        if (inputMethod.equals(INPUT_METHOD.INPUTSTREAM)) {
+            put.setEntity(new InputStreamEntity(is));
+        } else {
+            String p = is.getPath().toUri().toString();
+            put.setHeader("fileUrl", p);
+        }
+        return getResponse(fileKey, put);
+    }
+
+    private TikaServerResponse tryParse(String fileKey, Path path) {
+        int index = ThreadLocalRandom.current().nextInt(urls.size());
         HttpPut put = new HttpPut(urls.get(index));
         String p = path.toUri().toString();
         put.setHeader("fileUrl", p);
+        return getResponse(path.toAbsolutePath().toString(), put);
+    }
+
+    private TikaServerResponse getResponse(String fileKey, HttpPut put) {
+        long start = System.currentTimeMillis();
         HttpResponse response = null;
         try {
             response = client.execute(put);
@@ -173,17 +178,17 @@ public class TikaServerClient implements TikaClient {
                         200, "", null);
             }
         } else if (statusInt == 415) {
-            LOG.warn("unsupported media type: "+path);
+            LOG.warn("unsupported media type: "+fileKey);
             //unsupported media type
             return new TikaServerResponse(STATE.RESPONSE_UNPROCESSABLE_EXCEPTION);
         } /*else if (statusInt == 422) {
             LOG.warn("parse exception: "+path);
             return new TikaServerResponse(STATE.RESPONSE_PARSE_EXCEPTION);
         }*/ else if (statusInt == 400) {
-            LOG.warn("bad request: " + path);
+            LOG.warn("bad request: " + fileKey);
             return new TikaServerResponse(STATE.RESPONSE_BAD_REQUEST);
         } else if (statusInt == 503) {
-            LOG.warn("server active, but not available: "+path);
+            LOG.warn("server active, but not available: "+fileKey);
             //server is in shutdown mode
             return new TikaServerResponse(STATE.RESPONSE_SERVER_UNAVAILABLE);
         }

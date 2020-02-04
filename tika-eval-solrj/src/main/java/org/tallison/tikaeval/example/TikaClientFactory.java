@@ -14,9 +14,16 @@ public class TikaClientFactory {
         if (commandLine.hasOption("i") && ! commandLine.hasOption("t")) {
             throw new IllegalArgumentException("must specify a tika-server if specifying an input directory");
         }
+
         //do more error checking
         if (commandLine.hasOption("t")) {
-            return new TikaServerClient(commandLine.getOptionValues("t"));
+            if (commandLine.hasOption("f")) {
+                return new TikaServerClient(TikaServerClient.INPUT_METHOD.FILE,
+                        commandLine.getOptionValues("t"));
+            } else {
+                return new TikaServerClient(TikaServerClient.INPUT_METHOD.INPUTSTREAM,
+                        commandLine.getOptionValues("t"));
+            }
         }
         if (commandLine.hasOption("e")) {
             return new TikaExtractClient();

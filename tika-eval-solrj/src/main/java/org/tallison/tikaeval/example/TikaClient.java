@@ -16,6 +16,7 @@
  */
 package org.tallison.tikaeval.example;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -26,5 +27,6 @@ import org.apache.tika.metadata.Metadata;
 public interface TikaClient {
 
     //for now, this has to be a TikaInputStream to allow for re-tries
-    List<Metadata> parse(TikaInputStream is) throws TikaClientException;
+    List<Metadata> parse(String fileKey, TikaInputStream is)
+            throws IOException, TikaClientException;
 }
