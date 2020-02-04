@@ -151,14 +151,6 @@ public class TikaServerClient implements TikaClient {
         return getResponse(fileKey, put);
     }
 
-    private TikaServerResponse tryParse(String fileKey, Path path) {
-        int index = ThreadLocalRandom.current().nextInt(urls.size());
-        HttpPut put = new HttpPut(urls.get(index));
-        String p = path.toUri().toString();
-        put.setHeader("fileUrl", p);
-        return getResponse(path.toAbsolutePath().toString(), put);
-    }
-
     private TikaServerResponse getResponse(String fileKey, HttpPut put) {
         long start = System.currentTimeMillis();
         HttpResponse response = null;
