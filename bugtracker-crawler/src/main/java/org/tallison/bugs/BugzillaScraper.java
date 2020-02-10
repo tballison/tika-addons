@@ -111,11 +111,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         } else {
             this.apiKey = "&api_key=" + apiKey;
         }
-        if (StringUtils.isBlank(product)) {
-            this.product = "";
-        } else {
-            this.product = "&product="+apiKey;
-        }
+        this.product = product;
     }
 
     public static void main(String[] args) throws Exception {
