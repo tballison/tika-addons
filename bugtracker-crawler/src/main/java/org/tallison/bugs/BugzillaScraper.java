@@ -25,9 +25,15 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -38,11 +44,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class BugzillaScraper {
 
@@ -55,6 +57,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
      */
 
     /*
+        -p REDHAT -u https://bugzilla.redhat.com/ -m application -o /Users/allison/Desktop/redhat -s 1000
         -p OOO -u https://bz.apache.org/ooo -m application -o /docs/ooo -s 10
         -p POI -u https://bz.apache.org/bugzilla/ -m application -o /docs/poi -d POI -s 10
         -p LIBRE_OFFICE -u https://bugs.documentfoundation.org/ -m application -o /Users/allison/Desktop/libre -s 10
@@ -65,7 +68,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     private static String OFFSET = "&offset="; //start at ...how far into the results to return.
 
     private String generalQueryByURL = "/bug?" +
-            "include_fields=id" + //only bring back the id field
+            //bring back id field and some other important metadata
+            "include_fields=id,summary,keywords,product,component,creation_time,last_change_time" +
             "&order=bug_id%20DESC" + //order consistently by bug id desc -- completely arbitrary
             "&query_format=advanced" +
             "&o1=anywordssubstr" + //require any word to match
@@ -82,7 +86,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                 .addOption("k", "apiKey", true, "(optional) api key")
                 .addOption("s", "size", true, "page result size");
 
-    int pageResultSize = 2;
+    int pageResultSize = 1000;
     String restCGI = "rest.cgi/";
 
     private DateTimeFormatter formatter =
@@ -178,7 +182,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         }
     }
 
-    private List<String> getIssueIds(int offset, int pageSize) throws ClientException {
+    private List<String> getIssueIds(int offset, int pageSize) throws IOException, ClientException {
         String url = getIssueIdUrl(offset, pageSize);
         byte[] bytes = null;
         if (offset == 0) {
@@ -193,6 +197,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         } else {
             bytes = HttpUtils.get(url);
         }
+        Path resultsPath = rootDir.resolve("metadata/"+offset+".json.gz");
+        gz(resultsPath, bytes);
         String json = new String(bytes, StandardCharsets.UTF_8);
         JsonElement root = JsonParser.parseString(json);
         if (! root.isJsonObject()) {
@@ -232,11 +238,11 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private boolean processIssue(String issueId) throws IOException, ClientException {
-        Path jsonMetadataPath = rootDir.resolve("metadata/"+project+"-" + issueId + ".json");
+        Path jsonMetadataPath = rootDir.resolve("metadata/"+project+"-" + issueId + ".json.gz");
         boolean networkCall = false;
         byte[] jsonBytes = null;
         if (Files.isRegularFile(jsonMetadataPath)) {
-            jsonBytes = Files.readAllBytes(jsonMetadataPath);
+            jsonBytes = gunzip(jsonMetadataPath);
         } else {
             String url = baseUrl+restCGI+"/bug/" + issueId + "/attachment";
             if (! StringUtils.isBlank(apiKey)) {
@@ -255,7 +261,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                 e.printStackTrace();
                 return networkCall;
             }
-            Files.write(jsonMetadataPath, jsonBytes);
+            gz(jsonMetadataPath, jsonBytes);
         }
         JsonElement rootEl = JsonParser.parseString(new String(jsonBytes, StandardCharsets.UTF_8));
         if (!rootEl.isJsonObject()) {
@@ -326,7 +332,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         JsonPrimitive p = el.getAsJsonPrimitive();
         return p.getAsString();
     }
-
+/*
     private Set<String> getIssueIds(String initialQuery) throws IOException, ClientException {
         byte[] htmlBytes = null;
         Path resultsHtmlPath = rootDir.resolve("metadata/"+project+"-results.html");
@@ -345,5 +351,24 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         }
         return set;
     }
+*/
+    private void gz(Path p, byte[] bytes) throws IOException {
+        try (OutputStream os = Files.newOutputStream(p)) {
+            try (GzipCompressorOutputStream gz = new GzipCompressorOutputStream(os)) {
+                gz.write(bytes);
+                gz.flush();
+            }
+            os.flush();
+        }
+    }
 
+    private byte[] gunzip(Path p) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (InputStream is = Files.newInputStream(p)) {
+            try (GzipCompressorInputStream gz = new GzipCompressorInputStream(is)) {
+                IOUtils.copy(is, bos);
+            }
+        }
+        return bos.toByteArray();
+    }
 }
