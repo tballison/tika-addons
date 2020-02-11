@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Basic scraper to grab attachments from JIRA.
+ * Basic scraper to grab attachments from Apache's JIRA.
  * <p>
  * Thanks to Cassandra Targett for the links on the JIRA rest api!
  * <p>
@@ -65,7 +65,10 @@ public class JIRAScraper {
         int start = 0;
         int total = -1;
         while (total < 0 || start < total) {
-            String url = BASE + project + FIELDS + "&startAt=" + start + "&maxResults=" + maxResults;
+            String url = BASE + project
+                    //+"%20AND%20KEY=PDFBOX-1780"
+                    + FIELDS + "&startAt=" + start + "&maxResults=" + maxResults;
+
             byte[] jsonBytes = HttpUtils.get(url);
             writeJson(start, jsonBytes);
             String json = new String(jsonBytes, StandardCharsets.UTF_8);
@@ -81,7 +84,7 @@ public class JIRAScraper {
                     Attachment a = attachments.get(i);
                     ScraperUtils.grabAttachment(outputDir, a, issueId, i);
                 }
-                System.out.println("isu " + issueId + " " + total);
+                System.out.println("issue: " + issueId + " " + total);
             }
             start += arr.size();
             if (arr.size() == 0) {

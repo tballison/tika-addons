@@ -31,6 +31,12 @@ import java.nio.charset.StandardCharsets;
 
 class HttpUtils {
 
+    /**
+     *
+     * @param url url-encoded url -- this does not encode the url!
+     * @return
+     * @throws ClientException
+     */
     public static byte[] get(String url) throws ClientException {
         //overly simplistic...need to add proxy, etc., but good enough for now
         URI uri = null;
@@ -42,8 +48,8 @@ class HttpUtils {
         HttpHost target = new HttpHost(uri.getHost(), uri.getPort());
         HttpGet httpGet = null;
         try {
-            String get = uri.getPath();
-            if (!StringUtils.isBlank(uri.getQuery())) {
+            String get = uri.getRawPath();
+            if (!StringUtils.isBlank(uri.getRawQuery())) {
                 get += "?" + uri.getRawQuery();
             }
             httpGet = new HttpGet(get);

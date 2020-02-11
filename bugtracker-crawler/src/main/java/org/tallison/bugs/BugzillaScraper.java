@@ -165,6 +165,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             System.out.println("\n\nnum issues: " + issueIds.size());
             boolean networkCall = false;
             for (String issueId : issueIds) {
+
                 networkCall = processIssue(issueId);
                 if (networkCall) {
                     try {
@@ -174,7 +175,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                     }
                 }
             }
-            offset += pageResultSize;
+            offset += issueIds.size();
         }
     }
 
@@ -237,7 +238,9 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         Path jsonMetadataPath = rootDir.resolve("metadata/"+project+"-" + issueId + ".json.gz");
         boolean networkCall = false;
         byte[] jsonBytes = null;
+        System.err.println("going to get: "+jsonMetadataPath);
         if (Files.isRegularFile(jsonMetadataPath)) {
+            System.err.println("getting from file: "+jsonMetadataPath);
             jsonBytes = gunzip(jsonMetadataPath);
         } else {
             String url = baseUrl+restCGI+"/bug/" + issueId + "/attachment";
@@ -253,9 +256,24 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             try {
                 jsonBytes = HttpUtils.get(url);
             } catch (ClientException e) {
-                System.err.println(issueId);
+                System.err.println("exception for "+project + " : " +issueId);
                 e.printStackTrace();
-                return networkCall;
+                if (e.getMessage() != null && e.getMessage().contains("rate limited")) {
+                    System.err.println("rate limited sleeping for two minutes");
+                    try {
+                        Thread.sleep(120000);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                    try {
+                        jsonBytes = HttpUtils.get(url);
+                    } catch (ClientException e2) {
+                        e.printStackTrace();
+                        return networkCall;
+                    }
+                } else {
+                    return networkCall;
+                }
             }
             gz(jsonMetadataPath, jsonBytes);
         }
@@ -362,7 +380,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (InputStream is = Files.newInputStream(p)) {
             try (GzipCompressorInputStream gz = new GzipCompressorInputStream(is)) {
-                IOUtils.copy(is, bos);
+                IOUtils.copy(gz, bos);
             }
         }
         return bos.toByteArray();

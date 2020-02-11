@@ -25,8 +25,11 @@ import org.apache.tika.extractor.EmbeddedDocumentExtractor;
 import org.apache.tika.io.IOExceptionWithCause;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.pkg.PackageParser;
+import org.apache.tika.parser.pkg.RarParser;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -45,7 +48,8 @@ import java.util.Set;
 //to delete attachments, try: find -E . -regex '.*-[0-9]+.*-[0-9]+.*-[0-9]+.*' -delete
 class Unpacker {
 
-    PackageParser p = new PackageParser();
+    Parser packageParser = new AutoDetectParser(new PackageParser(), new RarParser());
+
     static Set<String> PACKAGE_FORMAT_EXTS = new HashSet<>();
     static Set<String> COMPRESSED_FORMAT_EXTS = new HashSet<>();
     static {
@@ -53,12 +57,14 @@ class Unpacker {
         PACKAGE_FORMAT_EXTS.add(".7z");
         PACKAGE_FORMAT_EXTS.add(".tar");
         PACKAGE_FORMAT_EXTS.add(".gtar");
+        PACKAGE_FORMAT_EXTS.add(".rar");
     }
     static {
         COMPRESSED_FORMAT_EXTS.add(".tgz");
         COMPRESSED_FORMAT_EXTS.add(".bz2");
         COMPRESSED_FORMAT_EXTS.add(".gz");
         COMPRESSED_FORMAT_EXTS.add(".gzip");
+        COMPRESSED_FORMAT_EXTS.add(".lz4");
         COMPRESSED_FORMAT_EXTS.add(".xz");
 
     }
@@ -102,7 +108,7 @@ class Unpacker {
         try (TikaInputStream tis = TikaInputStream.get(file, m)) {
             ParseContext context = new ParseContext();
             context.set(EmbeddedDocumentExtractor.class, new FileEmbeddedDocumentExtractor(file));
-            p.parse(tis, new DefaultHandler(), m, context);
+            packageParser.parse(tis, new DefaultHandler(), m, context);
         } catch (TikaException|IOException|SAXException| RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("Unable to unpack")) {
                 //do nothing
