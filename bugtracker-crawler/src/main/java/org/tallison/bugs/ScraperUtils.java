@@ -74,6 +74,28 @@ class ScraperUtils {
         return ".bin";
     }
 
+    public static MediaType getMediaType(Path targ) {
+        try (InputStream tis = TikaInputStream.get(targ)) {
+            return TIKA.getDetector().detect(tis, new Metadata());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return MediaType.OCTET_STREAM;
+    }
+
+    public static String getExtension(MediaType mt) {
+        try {
+            String ext = TIKA_CONFIG.getMimeRepository().forName(
+                    mt.toString()).getExtension();
+            if (ext != null) {
+                return ext;
+            }
+        } catch (MimeTypeException e) {
+            e.printStackTrace();
+        }
+        return ".bin";
+    }
+
     public static Path getInitialTarget(Path root, Attachment a, String issueId, int i) {
         String ext = FilenameUtils.getExtension(a.fileName);
         ext = ext.toLowerCase(Locale.US);

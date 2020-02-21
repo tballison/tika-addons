@@ -91,10 +91,13 @@ class Unpacker {
             return;
         }
         String ext = ScraperUtils.getExtension(file);
+        System.out.println("about to process: "+file);
         if (COMPRESSED_FORMAT_EXTS.contains(ext)) {
             try {
                 decompress(file);
-            } catch (IOException e) {
+            } catch (SecurityException e) {
+                throw e;
+            } catch (Exception e) {
                 System.err.println(file);
                 e.printStackTrace();
             }
@@ -109,7 +112,7 @@ class Unpacker {
             ParseContext context = new ParseContext();
             context.set(EmbeddedDocumentExtractor.class, new FileEmbeddedDocumentExtractor(file));
             packageParser.parse(tis, new DefaultHandler(), m, context);
-        } catch (TikaException|IOException|SAXException| RuntimeException e) {
+        } catch (TikaException|IOException|SAXException|RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("Unable to unpack")) {
                 //do nothing
             } else {

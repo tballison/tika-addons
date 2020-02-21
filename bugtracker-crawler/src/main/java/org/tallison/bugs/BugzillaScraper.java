@@ -61,7 +61,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         -p OOO -u https://bz.apache.org/ooo -m application -o /docs/ooo -s 10
         -p POI -u https://bz.apache.org/bugzilla/ -m application -o /docs/poi -d POI -s 10
         -p LIBRE_OFFICE -u https://bugs.documentfoundation.org/ -m application -o /Users/allison/Desktop/libre -s 10
-        -p GHOSTSCRIPT -u https://bugs.ghostscript.com/ -m application -o /Users/allison/Desktop/ghostscript -s 10
+        -p GHOSTSCRIPT -u https://bugs.ghostscript.com/ -m application -o /Users/allison/Desktop/ghostscript -s 1000
      */
 
     private static String LIMIT = "&limit="; //how many results to bring back
@@ -165,7 +165,6 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             System.out.println("\n\nnum issues: " + issueIds.size());
             boolean networkCall = false;
             for (String issueId : issueIds) {
-
                 networkCall = processIssue(issueId);
                 if (networkCall) {
                     try {
