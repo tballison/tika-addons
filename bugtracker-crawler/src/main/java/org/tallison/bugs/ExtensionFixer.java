@@ -94,6 +94,8 @@ public class ExtensionFixer {
         DONT_CHANGE_ORIG_EXT.add(".exe"); //dll
         DONT_CHANGE_ORIG_EXT.add(".key"); //zip
         DONT_CHANGE_ORIG_EXT.add(".pages"); //zip
+        //TODO: add .jar, which Tika recognizes as .zip
+        //TODO: add cbz, which Tika recognizes as .zip
 
     }
 
