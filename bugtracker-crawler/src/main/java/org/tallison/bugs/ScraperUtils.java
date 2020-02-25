@@ -102,6 +102,7 @@ class ScraperUtils {
         if (a.fileName.toLowerCase(Locale.US).endsWith(".tar.gz")) {
             ext = "tgz";
         }
+        ext = ext.trim();
         Path targ = root.resolve(issueId + "-" + i + "." + ext);
         System.out.println("writing " + a.attachmentUrl + " " + targ);
         return targ;

@@ -14,17 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.tika.TikaTest;
-import org.apache.tika.exception.TikaException;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.AutoDetectParser;
-import org.junit.Test;
+package org.tallison.bugs;
 
-public class UnpackerTest extends TikaTest {
-    @Test(expected = TikaException.class)
-    public void testOneOff() throws Exception {
-        getXML(
-                UnpackerTest.class.getResourceAsStream("/zip64-sample.zip"),
-                new AutoDetectParser(), new Metadata());
+
+public class MonorailCrawler {
+
+    public static void main(String[] args) throws Exception {
+        //Abandon all hope
+        //Do this in python.  use google's code: https://chromium.googlesource.com/infra/infra/+/master/appengine/monorail/doc/api.md
     }
 }

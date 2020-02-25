@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.tika.TikaTest;
-import org.apache.tika.exception.TikaException;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.AutoDetectParser;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.tallison.bugs.ExtensionFixer;
 
-public class UnpackerTest extends TikaTest {
-    @Test(expected = TikaException.class)
-    public void testOneOff() throws Exception {
-        getXML(
-                UnpackerTest.class.getResourceAsStream("/zip64-sample.zip"),
-                new AutoDetectParser(), new Metadata());
+public class ExtensionFixerTest {
+
+    @Test
+    @Ignore//used only for one off development testing...TODO: add actual unit tests
+    public void simpleTest() throws Exception {
+        String[] args = new String[] {
+                "/home/tallison/data/docs/"
+        };
+        ExtensionFixer.main(args);
     }
 }
