@@ -29,4 +29,13 @@ class Attachment {
         this.fileName = fileName;
         this.created = created;
     }
+
+    @Override
+    public String toString() {
+        return "Attachment{" +
+                "attachmentUrl='" + attachmentUrl + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", created=" + created +
+                '}';
+    }
 }

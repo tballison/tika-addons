@@ -30,6 +30,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -144,7 +146,12 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (commandLine.hasOption("s")) {
             scraper.setPageResultSize(Integer.parseInt(commandLine.getOptionValue("s")));
         }
-        scraper.execute();
+        try {
+            scraper.execute();
+        } catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
     }
 
     private void setPageResultSize(int s) {
@@ -162,7 +169,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                 break;
             }
             System.out.println("found " + issueIds);
-            System.out.println("\n\nnum issues: " + issueIds.size());
+            System.out.println("\n\nnum issues: " + issueIds.size() +
+                    " from offset "+offset);
             boolean networkCall = false;
             for (String issueId : issueIds) {
                 networkCall = processIssue(issueId);
@@ -179,22 +187,26 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private List<String> getIssueIds(int offset, int pageSize) throws IOException, ClientException {
-        String url = getIssueIdUrl(offset, pageSize);
+        Path resultsPath = rootDir.resolve("metadata/"+offset+".json.gz");
         byte[] bytes = null;
-        if (offset == 0) {
-            try {
-                bytes = HttpUtils.get(url);
-            } catch (ClientException e) {
-                //try removing the .cgi
-                restCGI = "rest/";
-                url = getIssueIdUrl(offset, pageSize);
+        if (Files.isRegularFile(resultsPath)) {
+            bytes = gunzip(resultsPath);
+        } else {
+            String url = getIssueIdUrl(offset, pageSize);
+            if (offset == 0) {
+                try {
+                    bytes = HttpUtils.get(url);
+                } catch (ClientException e) {
+                    //try removing the .cgi
+                    restCGI = "rest/";
+                    url = getIssueIdUrl(offset, pageSize);
+                    bytes = HttpUtils.get(url);
+                }
+            } else {
                 bytes = HttpUtils.get(url);
             }
-        } else {
-            bytes = HttpUtils.get(url);
+            gz(resultsPath, bytes);
         }
-        Path resultsPath = rootDir.resolve("metadata/"+offset+".json.gz");
-        gz(resultsPath, bytes);
         String json = new String(bytes, StandardCharsets.UTF_8);
         JsonElement root = JsonParser.parseString(json);
         if (! root.isJsonObject()) {
@@ -325,7 +337,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (! StringUtils.isAllBlank(data)) {
             byte[] bytes = Base64.getDecoder().decode(data);
             try {
-                ScraperUtils.writeAttachment(bytes, target, rootDir, project + "-" + issueId, i, lastModified);
+                Files.copy(new ByteArrayInputStream(bytes), target, StandardCopyOption.REPLACE_EXISTING);
+                ScraperUtils.writeAttachment(target, rootDir, project + "-" + issueId, i, lastModified);
             } catch (IOException e) {
                 e.printStackTrace();
             }

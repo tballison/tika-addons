@@ -115,27 +115,18 @@ class ScraperUtils {
         if (Files.isRegularFile(targ)) {
             return;
         }
-        byte[] raw = null;
         try {
-            raw = HttpUtils.get(a.attachmentUrl);
+            HttpUtils.get(a.attachmentUrl, targ);
         } catch (ClientException | IllegalArgumentException e) {
             System.err.println(a.attachmentUrl);
             e.printStackTrace();
             return;
         }
-        writeAttachment(raw, targ, root, issueId, i, a.created);
+        writeAttachment(targ, root, issueId, i, a.created);
     }
 
-    public static void writeAttachment(byte[] raw, Path targ, Path root, String issueId,
+    public static void writeAttachment(Path targ, Path root, String issueId,
                                         int i, Instant created) throws IOException {
-        if (raw == null) {
-            return;
-        }
-        try (OutputStream os = Files.newOutputStream(targ)) {
-            IOUtils.copy(new ByteArrayInputStream(raw), os);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         //if the extension was blank or longer than 5 letters, detect file type with Tika
         //then mv the file to the new name

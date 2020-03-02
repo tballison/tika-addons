@@ -34,7 +34,7 @@ import java.util.Set;
 
 /**
  * Runs detection on a file and will change its extension
- * if the extension is wrong.
+ * if the extension appears to be wrong according to Tika's detection.
  */
 public class ExtensionFixer {
     static Set<MediaType> UNRELIABLE_MEDIA_TYPES = new HashSet<>();
@@ -66,7 +66,8 @@ public class ExtensionFixer {
         DONT_CHANGE_ORIG_EXT.add(".odt");
         DONT_CHANGE_ORIG_EXT.add(".ods");
         DONT_CHANGE_ORIG_EXT.add(".odg");//odp
-        DONT_CHANGE_ORIG_EXT.add(".bau");//zip
+        DONT_CHANGE_ORIG_EXT.add(".jar");//zip
+        DONT_CHANGE_ORIG_EXT.add(".cbz");//zip
         DONT_CHANGE_ORIG_EXT.add(".odp");
         DONT_CHANGE_ORIG_EXT.add(".exe");
         DONT_CHANGE_ORIG_EXT.add(".xcu");//xml
@@ -94,14 +95,22 @@ public class ExtensionFixer {
         DONT_CHANGE_ORIG_EXT.add(".exe"); //dll
         DONT_CHANGE_ORIG_EXT.add(".key"); //zip
         DONT_CHANGE_ORIG_EXT.add(".pages"); //zip
-        //TODO: add .jar, which Tika recognizes as .zip
-        //TODO: add cbz, which Tika recognizes as .zip
+        DONT_CHANGE_ORIG_EXT.add(".ogv");//loses information -> ogx
+        DONT_CHANGE_ORIG_EXT.add(".ogg");//loses information -> ogx
+        DONT_CHANGE_ORIG_EXT.add(".vdx");//xml
+        DONT_CHANGE_ORIG_EXT.add(".abw");//xml
+        DONT_CHANGE_ORIG_EXT.add(".xcd");//xml
+        //to add  ott scc sci fsxw -> zip
+        //fsxw -> xml
+        //odt -> ott
+        //odm -> otm
 
     }
 
     static {
         CUSTOM_TIKA_MAPPINGS.put(".gtar", ".tar");
     }
+
     public static void main(String[] args) {
         Path dir = Paths.get(args[0]);
         process(dir);

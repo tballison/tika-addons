@@ -17,7 +17,6 @@
 package org.tallison.bugs;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -31,68 +30,55 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GithubScraper {
+/**
+ * Work in progress.  Ignore for now.
+ */
+public class GitlabScraper {
     /**
-     * /home/tallison/data/github/sumatra SUMATRAPDF https://github.com/sumatrapdfreader/sumatrapdf
-     * /home/tallison/data/github/mozilla MOZILLA https://github.com/mozilla/pdf.js
-     * /home/tallison/data/github/qpdf QPDF https://github.com/qpdf/qpdf
-     * /home/tallison/data/github/openpdf OPENPDF https://github.com/LibrePDF/OpenPDF
-     * /home/tallison/data/github/ocrmypdf OCRMYPDF https://github.com/jbarlow83/OCRmyPDF
-     * /home/tallison/data/github/laraval-snappy LARAVEL_SNAPPY https://github.com/barryvdh/laravel-snappy
+     * /home/tallison/data/github/poppler POPPLER https://gitlab.freedesktop.org/poppler/poppler/
      *
      */
+    static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*>)");
 
-    /**
-     * TODO see SUMATRA-1343 --need to add links to github repo files;
-     * can't just block all of github.com
-     */
-    static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*)\"?>");
-    static Pattern FILES_PATTERN = Pattern.compile("\\/files\\/\\d+");
-    static Pattern PULL_PATTERN = Pattern.compile("\\/pull\\/\\d+");
-    static Pattern DATE_TIME = Pattern.compile("relative-time datetime=\"([-T:\\d]+Z)\"");
+    //this is really flimsy...
+    static Pattern DATE_TIME = Pattern.compile("datetime=\"([-T:\\d]+Z)\"");
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssVV");
 
     private static final String DOCS = "docs";
     private static final String METADATA = "metadata";
 
-    private final Path docsRoot;
-    private final Path metadataRoot;
+    private final Path fileRoot;
     private final String projName;
     private final String baseUrl;
 
     private Set<String> externalExtensions = new HashSet<>();
 
 
-    public GithubScraper(Path docsRoot, Path metadataRoot, String projName, String baseUrl) {
-        this.docsRoot = docsRoot;
-        this.metadataRoot = metadataRoot;
+    public GitlabScraper(Path fileRoot, String projName, String baseUrl) {
+        this.fileRoot = fileRoot;
         this.projName = projName;
         this.baseUrl = baseUrl;
+        //this.domain = // get domain
         externalExtensions.add("pdf");
     }
 
     public static void main(String[] args) throws Exception {
 
-        Path root = Paths.get(args[0]);
+        Path fileRoot = Paths.get(args[0]);
         String projName = args[1];
         String baseUrl = args[2];
-        String lcProjName = projName.toLowerCase(Locale.US);
-        Path docsRoot = root.resolve(DOCS).resolve(lcProjName);
-        Path metadataRoot = root.resolve(METADATA).resolve(lcProjName);
-        GithubScraper scraper = new GithubScraper(docsRoot, metadataRoot,
-                projName, baseUrl);
+        GitlabScraper scraper = new GitlabScraper(fileRoot, projName, baseUrl);
         scraper.scrape();
 
     }
 
     private void scrape() throws ClientException, IOException {
-        Files.createDirectories(metadataRoot);
-        Files.createDirectories(docsRoot);
+        Files.createDirectories(fileRoot.resolve(METADATA));
+        Files.createDirectories(fileRoot.resolve(DOCS));
         int maxIssue = getMaxIssue();
         if (maxIssue < 0) {
             throw new RuntimeException("Couldn't find max issue "+maxIssue);
@@ -104,27 +90,31 @@ public class GithubScraper {
 
     private int getMaxIssue() throws ClientException {
         byte[] htmlBytes = null;
-        String url = baseUrl + "/issues?q=is%3Aissue+sort%3Acreated-desc";
+        String url = baseUrl + "/issues";
         htmlBytes = HttpUtils.get(url);
         String html = new String(htmlBytes, StandardCharsets.UTF_8);
-        Matcher m = Pattern.compile("<div id=\"issue_(\\d+)").matcher(html);
-        if (m.find()) {
-            return Integer.parseInt(m.group(1));
+        Matcher issueMatcher = Pattern.compile("<li class=\"issue\"([^>]+)>").matcher(html);
+        if (issueMatcher.find()) {
+            Matcher numMatcher = Pattern.compile("url=\"[^\"]+(\\d+)\"").matcher(issueMatcher.group(1));
+            if (numMatcher.find()) {
+                return Integer.parseInt(numMatcher.group(1));
+            }
         }
         return -1;
     }
 
     private void processIssue(int issueId) {
-        //https://github.com/tballison/tika-addons/issues/3
+        //https://gitlab.freedesktop.org/poppler/poppler/issues/885
         String url = "https://api.github.com/repos/tballison/tika-addons/issues/3";
         url = "https://github.com/qpdf/qpdf/issues/391";
         url = baseUrl + "/issues/" + issueId;
-        Path htmlFile = metadataRoot.resolve(issueId + ".html");
+        Path htmlFile = fileRoot.resolve("metadata/" + issueId + ".html");
 
         String html = getIssueHtml(issueId, url, htmlFile);
         if (html == null) {
             return;
         }
+        //get the first.  TODO: fix this to parse xhtml structure
         Matcher dt = DATE_TIME.matcher(html);
         Instant lastModified = null;
         if (dt.find()) {
@@ -135,8 +125,6 @@ public class GithubScraper {
             return;
         }
         Matcher href = HREF_PATTERN.matcher(html);
-        Matcher filesMatcher = FILES_PATTERN.matcher("");
-        Matcher pullMatcher = PULL_PATTERN.matcher("");
         List<Attachment> attachments = new ArrayList<>();
         List<Attachment> externalLinks = new ArrayList<>();
         href.reset(html);
@@ -144,35 +132,19 @@ public class GithubScraper {
         Set<String> seenExternalLinks = new HashSet<>();
         while (href.find()) {
             String hrefString = href.group(2);
-            pullMatcher.reset(hrefString);
-            if (pullMatcher.find()) {
-                continue;
-            } else if (href.group(2).contains("opensource.guide")) {
+            if (href.group(2).contains("opensource.guide")) {
                 continue;
             } else if (href.group(2).contains("travis-ci.org")) {
                 continue;
-            } else if (href.group(2).contains("gist.github")) {
-                continue;
-            } else if (href.group(2).contains("github.com/notifications")) {
-                continue;
             }
 
-            if (hrefString.contains("github.com")) {
-                if (hrefString.contains("/commit/") || hrefString.contains("/tree/")) {
-                    continue;
-                }
-                String pre = href.group(1).trim();
-                String post = href.group(3).replaceAll("[\\s\"]", "").trim();
-                //filter out github.com hrefs with stuff before or after the href within the <a/>
-                if (! StringUtils.isAllBlank(pre) || ! StringUtils.isAllBlank(post)) {
-                    continue;
-                }
-            }
-
-            filesMatcher.reset(hrefString);
 
 //            System.out.println(hrefString);
-            if (filesMatcher.find()) {
+            if (href.group(1) != null && href.group(1).contains("class=\"gfm") ||
+                (href.group(3) != null && href.group(3).contains("class=\"gfm"))) {
+                if (hrefString.startsWith("/")) {
+                    hrefString = baseUrl+hrefString;
+                }
                 if (seenAttachments.contains(hrefString)) {
                     continue;
                 } else {
@@ -190,13 +162,12 @@ public class GithubScraper {
             }
         }
 
-        //getFiles(issueId, attachments);
-        //getExternalLinks(issueId, externalLinks);
+        getFiles(issueId, attachments);
+        getExternalLinks(issueId, externalLinks);
     }
 
     private Attachment getExternalLink(String hrefString, Instant lastModified,
                                        Set<String> externalLinks) {
-
         if (hrefString.contains("github") || hrefString.contains("www.adobe.com")) {
             return null;
         }
@@ -262,7 +233,7 @@ public class GithubScraper {
         int i = 0;
         for (Attachment attachment : attachments) {
             try {
-                ScraperUtils.grabAttachment(docsRoot, attachment,
+                ScraperUtils.grabAttachment(fileRoot.resolve(DOCS), attachment,
                         projName + "-" + issueId, i);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -278,7 +249,7 @@ public class GithubScraper {
         for (Attachment attachment : attachments) {
             System.out.println("grabbing: " + attachment);
             try {
-                ScraperUtils.grabAttachment(docsRoot, attachment,
+                ScraperUtils.grabAttachment(fileRoot.resolve(DOCS), attachment,
                       projName + "-LINK-" + issueId, i);
             } catch (IOException e) {
                 e.printStackTrace();

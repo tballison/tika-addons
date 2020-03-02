@@ -24,10 +24,14 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 class HttpUtils {
 
@@ -64,12 +68,56 @@ class HttpUtils {
                             httpResponse.getEntity()), StandardCharsets.UTF_8);
                     throw new ClientException("Bad status code: " +
                             httpResponse.getStatusLine().getStatusCode()
-                            + "for url: " + url + "; msg: " + msg);
+                            + "for url: " + url);
                 }
+
                 return EntityUtils.toByteArray(httpResponse.getEntity());
             }
+        } catch (IOException e) {
+            throw new ClientException(url, e);
         }
-        catch (IOException e) {
+    }
+
+    /**
+     *
+     * @param url url-encoded url -- this does not encode the url!
+     * @return
+     * @throws ClientException
+     */
+    public static void get(String url, Path targetPath) throws ClientException {
+        //overly simplistic...need to add proxy, etc., but good enough for now
+        URI uri = null;
+        try {
+            uri = new URI(url);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
+        HttpHost target = new HttpHost(uri.getHost(), uri.getPort());
+        HttpGet httpGet = null;
+        try {
+            String get = uri.getRawPath();
+            if (!StringUtils.isBlank(uri.getRawQuery())) {
+                get += "?" + uri.getRawQuery();
+            }
+            httpGet = new HttpGet(get);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(url, e);
+        }
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            try (CloseableHttpResponse httpResponse = httpClient.execute(target, httpGet)) {
+                if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                    String msg = new String(EntityUtils.toByteArray(
+                            httpResponse.getEntity()), StandardCharsets.UTF_8);
+                    throw new ClientException("Bad status code: " +
+                            httpResponse.getStatusLine().getStatusCode()
+                            + " for url: " + url);
+                }
+
+                Files.copy(httpResponse.getEntity().getContent(), targetPath,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
             throw new ClientException(url, e);
         }
     }
