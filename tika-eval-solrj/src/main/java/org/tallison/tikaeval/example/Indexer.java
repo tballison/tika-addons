@@ -140,6 +140,7 @@ public class Indexer {
             } catch (IOException e) {
                 LOG.warn("problem deleting", e);
             }
+        }
             //this is expensive. Only use one.
             DocMapper docMapper = new TikaEvalDocMapper();
             ExecutorService service = Executors.newFixedThreadPool(numThreads);
@@ -150,7 +151,8 @@ public class Indexer {
             LOG.info("numThreads: " + numThreads);
             long start = System.currentTimeMillis();
             for (int i = 0; i < numThreads; i++) {
-                executorCompletionService.submit(new IndexerWorker(tikaClient, searchClient,
+                executorCompletionService.submit(new IndexerWorker(tikaClient,
+                        SearchClientFactory.getClient(searchUrl),
                         extracts, docMapper));
             }
 
@@ -166,7 +168,7 @@ public class Indexer {
                 }
             }
             shutdown(start, service);
-        }
+
     }
 
     private void shutdown(long start, ExecutorService service) {

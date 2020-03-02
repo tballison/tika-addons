@@ -19,7 +19,9 @@ package org.tallison.tikaeval.example;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -48,7 +50,19 @@ public class TikaEvalDocMapper implements DocMapper {
 
     private static final int TRUNCATED_LENGTH = 1000;
     private static final Property CONTAINER_CREATED = Property.internalDate("container_created");
+    private static final Property[] BOOLEAN_PROPERTIES =
+            new Property[]{
+                    PDF.HAS_ACROFORM_FIELDS,
+                    PDF.HAS_XFA, PDF.HAS_XMP, TikaCoreProperties.HAS_SIGNATURE,
+            };
+    private static Map<Property, String> TAGS = new HashMap<>();
 
+    static {
+        TAGS.put(PDF.HAS_ACROFORM_FIELDS, "acro_fields");
+        TAGS.put(PDF.HAS_XFA, "xfa");
+        TAGS.put(PDF.HAS_XMP, "xmp");
+        TAGS.put(TikaCoreProperties.HAS_SIGNATURE, "digital_signature");
+    }
     private final CompositeTextStatsCalculator textStatsCalculator;
 
     public TikaEvalDocMapper() {
@@ -124,9 +138,6 @@ public class TikaEvalDocMapper implements DocMapper {
         tryToAddString(PDF.PDF_VERSION, "pdf_version", metadata, doc);
         tryToAddString(PDF.ACTION_TRIGGER, "action_trigger", metadata, doc);
         tryToAddString(TikaCoreProperties.FORMAT, "format", metadata, doc);
-        tryToAddBoolean(PDF.HAS_ACROFORM_FIELDS, "has_acro_fields", metadata, doc);
-        tryToAddBoolean(PDF.HAS_XFA, "has_xfa", metadata, doc);
-        tryToAddBoolean(PDF.HAS_XMP, "has_xmp", metadata, doc);
         tryToAddString(TikaCoreProperties.LANGUAGE, "lang", metadata, doc);
 
         tryToAddString("X-TIKA:digest:MD5", "md5", metadata, doc);
@@ -145,7 +156,6 @@ public class TikaEvalDocMapper implements DocMapper {
                 doc.add("mime", mimeDetailed);
             }
         }
-        tryToAddString(TikaCoreProperties.HAS_SIGNATURE, "has_signature", metadata, doc);
         tryToAddString(Metadata.CONTENT_TYPE, "mime_detailed", metadata, doc);
         tryToAddString(TikaCoreProperties.TITLE, "title", metadata, doc);
         tryToAddString(DublinCore.SUBJECT, "subject", metadata, doc);
@@ -157,7 +167,27 @@ public class TikaEvalDocMapper implements DocMapper {
         tryToAddString(RecursiveParserWrapperHandler.EMBEDDED_RESOURCE_PATH,
                 "embedded_path", metadata, doc);
         handleStackTrace(getStackTrace(metadata), doc);
+        addTags(metadata, doc);
         return doc;
+    }
+
+    private void addTags(Metadata metadata, Metadata doc) {
+        int added = 0;
+        StringBuilder sb = new StringBuilder();
+        for (Property p : BOOLEAN_PROPERTIES) {
+            String v = metadata.get(p);
+            if (v != null && v.toLowerCase(Locale.US).equals("true")) {
+                if (added > 0) {
+                    sb.append(" ");
+                }
+                sb.append(TAGS.get(p));
+                added++;
+            }
+        }
+        String tags = sb.toString();
+        if (! StringUtils.isAllBlank(tags)) {
+            doc.set("tags", tags);
+        }
     }
 
     private void tryToAddBoolean(Property property, String fieldName,

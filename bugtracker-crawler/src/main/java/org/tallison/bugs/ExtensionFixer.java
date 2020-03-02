@@ -175,12 +175,14 @@ public class ExtensionFixer {
         newFileName += newExt;
 
         Path targ = path.getParent().resolve(newFileName);
-        if (Files.exists(targ)) {
+        //If there isn't string equality in the names, then on some OS,
+        //the files are different e.g. 1.pdf and 1.PDF.
+        if (path.getFileName().toString().equals(newFileName) && Files.exists(targ)) {
             System.err.println("targ file already exists: "+targ +
                     " from "+path);
             return;
         }
-        System.out.println("cp "+path.toAbsolutePath() + " -> "+targ.toAbsolutePath());
+        System.out.println("mv "+path.toAbsolutePath() + " -> "+targ.toAbsolutePath());
         Files.move(path, targ, StandardCopyOption.ATOMIC_MOVE);
     }
 

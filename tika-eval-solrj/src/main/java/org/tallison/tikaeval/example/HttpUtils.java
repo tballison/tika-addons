@@ -20,14 +20,35 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.http.impl.conn.DefaultHttpClientConnectionOperator;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 
 public class HttpUtils {
 
@@ -39,7 +60,7 @@ public class HttpUtils {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
-        HttpHost target = new HttpHost(uri.getHost(), uri.getPort());
+        HttpHost target = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
         HttpGet httpGet = null;
         try {
             String get = uri.getPath();
@@ -51,7 +72,7 @@ public class HttpUtils {
             throw new IllegalArgumentException(url, e);
         }
 
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpClient = getClient(uri.getScheme())) {
             try (CloseableHttpResponse httpResponse = httpClient.execute(target, httpGet)) {
                 if (httpResponse.getStatusLine().getStatusCode() != 200) {
                     String msg = new String(EntityUtils.toByteArray(
@@ -66,5 +87,73 @@ public class HttpUtils {
         catch (IOException e) {
             throw new SearchClientException(url, e);
         }
+    }
+
+    public static CloseableHttpClient getClient(String authority) throws SearchClientException {
+        if (authority.endsWith("s")) {
+            try {
+                return httpClientTrustingAllSSLCerts2();
+            } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
+                e.printStackTrace();
+                throw new SearchClientException(e);
+            }
+        } else {
+            return HttpClients.createDefault();
+        }
+    }
+
+    private static CloseableHttpClient httpClientTrustingAllSSLCerts2()
+            throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
+        SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
+                NoopHostnameVerifier.INSTANCE);
+
+        Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                RegistryBuilder.<ConnectionSocketFactory> create()
+                        .register("https", sslsf)
+                        .register("http", new PlainConnectionSocketFactory())
+                        .build();
+
+        BasicHttpClientConnectionManager connectionManager =
+                new BasicHttpClientConnectionManager(socketFactoryRegistry);
+        CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf)
+                .setConnectionManager(connectionManager).build();
+        return httpClient;
+    }
+
+
+    private static CloseableHttpClient httpClientTrustingAllSSLCerts()
+            throws NoSuchAlgorithmException, KeyManagementException {
+        DefaultHttpClient httpclient = new DefaultHttpClient();
+
+        SSLContext sc = SSLContext.getInstance("SSL");
+        sc.init(null, getTrustingManager(), new java.security.SecureRandom());
+
+        SSLSocketFactory socketFactory = new SSLSocketFactory(sc);
+        Scheme sch = new Scheme("https", 443, socketFactory);
+        httpclient.getConnectionManager().getSchemeRegistry().register(sch);
+        return httpclient;
+    }
+
+    private static TrustManager[] getTrustingManager() {
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+            @Override
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                // Do nothing
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                // Do nothing
+            }
+
+        } };
+        return trustAllCerts;
     }
 }
