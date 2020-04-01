@@ -32,7 +32,7 @@ public class DirectoryFlattener {
     public static void main(String[] args) throws Exception {
         Path srcRoot = Paths.get(args[0]);
         Path targRoot = Paths.get(args[1]);
-
+        Files.createDirectories(targRoot);
         process(srcRoot, targRoot);
     }
 

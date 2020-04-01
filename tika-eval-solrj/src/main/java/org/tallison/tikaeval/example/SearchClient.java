@@ -1,6 +1,6 @@
 package org.tallison.tikaeval.example;
 
-import org.apache.solr.client.solrj.SolrServerException;
+
 import org.apache.tika.metadata.Metadata;
 
 import java.io.Closeable;

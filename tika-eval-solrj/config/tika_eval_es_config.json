@@ -4,7 +4,7 @@
     ],
     "mappings": {
         "_meta": {
-            "version": "7.4.2"
+            "version": "7.6.0"
         },
         "dynamic": "false",
         "properties": {
@@ -29,6 +29,10 @@
                 "type": "text"
             },
             "subject": {
+                "analyzer": "text_basic",
+                "type": "text"
+            },
+            "tags": {
                 "analyzer": "text_basic",
                 "type": "text"
             },
@@ -103,18 +107,6 @@
             },
             "format": {
                 "type": "keyword"
-            },
-            "has_xfa": {
-                "type": "boolean"
-            },
-            "has_xmp": {
-                "type": "boolean"
-            },
-            "has_acro_fields": {
-                "type": "boolean"
-            },
-            "has_signature": {
-                "type": "boolean"
             },
             "mime": {
                 "analyzer": "text_basic",

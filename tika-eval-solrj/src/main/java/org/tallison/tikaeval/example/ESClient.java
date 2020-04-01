@@ -17,6 +17,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +38,13 @@ public class ESClient implements SearchClient {
     private final String esCollection;
 
     public ESClient(String url) {
-        httpClient = HttpClients.createDefault();
+        try {
+            httpClient = HttpUtils.getClient(new URI(url).getScheme());
+        } catch (SearchClientException e) {
+            throw new RuntimeException(e);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
         String tmp = url;
         if (!url.endsWith("/")) {
             tmp = tmp + "/";
@@ -145,6 +153,7 @@ public class ESClient implements SearchClient {
                                 StandardCharsets.UTF_8));
             }
         } finally {
+
             httpRequest.releaseConnection();
         }
     }
