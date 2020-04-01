@@ -21,6 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -59,6 +60,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
      */
 
     /*
+        -p MOZILLA -u https://bugzilla.mozilla.org/ -m application -o /Users/allison/Desktop/mozilla -s 1000
         -p REDHAT -u https://bugzilla.redhat.com/ -m application -o /Users/allison/Desktop/redhat -s 1000
         -p OOO -u https://bz.apache.org/ooo -m application -o /docs/ooo -s 10
         -p POI -u https://bz.apache.org/bugzilla/ -m application -o /docs/poi -d POI -s 10
@@ -86,7 +88,9 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                         "optional specification of a product with a project, like POI")
                 .addOption("m", "mimeMatch", true, "required: terms in the mime for matching")
                 .addOption("k", "apiKey", true, "(optional) api key")
-                .addOption("s", "size", true, "page result size");
+                .addOption("s", "size", true, "page result size")
+                .addOption("i", "indexOnly", false,
+                        "only grab the index/paging results, not the actual issues");
 
     int pageResultSize = 1000;
     String restCGI = "rest.cgi/";
@@ -100,6 +104,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     private final String mimeTypeStrings;
     private final String product;//can be empty string
     private final String apiKey;//can be empty string
+    private boolean indexOnly = false;
 
     public BugzillaScraper(String project, String baseUrl,
                            String mimeTypeStrings, Path path,
@@ -146,12 +151,19 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (commandLine.hasOption("s")) {
             scraper.setPageResultSize(Integer.parseInt(commandLine.getOptionValue("s")));
         }
+        if (commandLine.hasOption("i")) {
+            scraper.setIndexOnly(true);
+        }
         try {
             scraper.execute();
         } catch (Throwable t) {
             t.printStackTrace();
             throw t;
         }
+    }
+
+    private void setIndexOnly(boolean indexOnly) {
+        this.indexOnly = indexOnly;
     }
 
     private void setPageResultSize(int s) {
@@ -171,14 +183,16 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             System.out.println("found " + issueIds);
             System.out.println("\n\nnum issues: " + issueIds.size() +
                     " from offset "+offset);
-            boolean networkCall = false;
-            for (String issueId : issueIds) {
-                networkCall = processIssue(issueId);
-                if (networkCall) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+            if (! indexOnly) {
+                boolean networkCall = false;
+                for (String issueId : issueIds) {
+                    networkCall = processIssue(issueId);
+                    if (networkCall) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -288,7 +302,13 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             }
             gz(jsonMetadataPath, jsonBytes);
         }
-        JsonElement rootEl = JsonParser.parseString(new String(jsonBytes, StandardCharsets.UTF_8));
+        JsonElement rootEl = null;
+        try {
+            rootEl = JsonParser.parseString(new String(jsonBytes, StandardCharsets.UTF_8));
+        } catch (JsonSyntaxException e) {
+            System.err.println("bad json: "+jsonMetadataPath);
+            return networkCall;
+        }
         if (!rootEl.isJsonObject()) {
             System.err.println("not an obj " + issueId);
             return networkCall;
@@ -324,6 +344,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         //String contentType = attachmentObj.getAsJsonPrimitive("content_type").getAsString();
         String fileName = attachmentObj.getAsJsonPrimitive("file_name").getAsString();
         String dateString = getAsString(attachmentObj, "last_change_time");
+        String mime = getAsString(attachmentObj, "content_type");
+        System.out.println(issueId + " "+i + " "+fileName +" mime: "+mime);
         Instant lastModified = ScraperUtils.getCreated(formatter, dateString);
 
         Attachment attachment = new Attachment("", fileName, lastModified);

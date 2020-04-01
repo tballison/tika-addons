@@ -85,6 +85,9 @@ class Unpacker {
     }
 
     private void processFile(Path file) {
+        if (file.getFileName().toString().contains("1430942-0.7z")) {
+            return;
+        }
         //already unpacked, return
         if (file.getFileName().toString().contains("-\\d+.*?-\\d+.*-\\d+")) {
             System.err.println("skipping: "+file);
@@ -162,6 +165,10 @@ class Unpacker {
                             + "-" +
                             count++
                             + extension);
+                    if (Files.isRegularFile(targ)) {
+                        //TODO: log
+                        return;
+                    }
                     System.out.println("extracting "+rootFile + " -> "+targ);
 
                     Files.move(tmp, targ);
@@ -200,6 +207,10 @@ class Unpacker {
                     + "-" +
                     count++
                     + extension);
+            if (Files.isRegularFile(targ)) {
+                //TODO: log
+                return;
+            }
             System.out.println("extracting " + rootFile + " -> " + targ);
             Files.move(tmp, targ);
             Files.setLastModifiedTime(targ, Files.getLastModifiedTime(rootFile));
