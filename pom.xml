@@ -45,7 +45,8 @@
       <module>tika-eval-solrj</module>
       <module>bugtracker-crawler</module>
     <module>solr-tika-integration</module>
-    <!--    <module>pdfbox18-shaded-integration-test</module>-->
+      <module>cheap-fuzzing</module>
+      <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
 </project>
