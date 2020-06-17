@@ -25,7 +25,7 @@ public class TikaClientTest extends TikaTest {
                 "-J",
                 "-t"
         };
-        List<Metadata> metadataList = parseOne(args, "example.xml");
+        List<Metadata> metadataList = parseOne(args, "ex ample.xml");
         assertEquals("success", metadataList.get(0).get(TikaClient.TIKA_STATUS));
         assertEquals("0", metadataList.get(0).get(TikaClient.EXIT_CODE));
         assertContains("some content", metadataList.get(0).get(
