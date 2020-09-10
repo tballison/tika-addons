@@ -5,7 +5,7 @@ import java.io.File;
 public class CurlIndexer {
 
     public static void main(String[] args) throws Exception {
-        File fileDir = new File("/home/tim/data/tika-test-documents");
+        File fileDir = new File("/home/tallison/data/tika-test-documents");
 
         int id = 0;
         for (File f : fileDir.listFiles()) {
@@ -26,13 +26,13 @@ public class CurlIndexer {
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder(
                         "curl",
-                        "http://localhost:8983/solr/tika-integration-example-9.x/update/extract?literal.id=doc"+id+"&commit=true",
+                        "http://localhost:8983/solr/tika-integration-example/update/extract?literal.id=doc"+id+"&fmap.content=text&commit=true",
                         "-F",
                         myFile);
                 processBuilder.inheritIO();
                 Process p = processBuilder.start();
                 p.waitFor();
-                System.out.println(p.exitValue());
+                System.out.println(f.getName() + " exit value: " + p.exitValue());
                 id++;
             } catch (Exception e) {
                 e.printStackTrace();;
