@@ -35,19 +35,15 @@
 
   <modules>
     <module>tika-addons-parent</module>
-    <module>pdfbox18-shaded</module>
-    <module>pdfbox18-shaded-integration-tests</module>
-      <module>recursive-fork-parser</module>
       <module>eval-addons</module>
-      <module>embedded-extractor</module>
       <module>zip-dumper</module>
       <module>lang-id</module>
       <module>tika-eval-solrj</module>
       <module>bugtracker-crawler</module>
     <module>solr-tika-integration</module>
-      <module>cheap-fuzzing</module>
     <module>tika-cli-client</module>
-    <!--    <module>pdfbox18-shaded-integration-test</module>-->
+      <module>pdftotext</module>
+      <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
 </project>
