@@ -19,6 +19,7 @@ package org.tallison.bugs;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -44,7 +45,7 @@ public class GithubScraper {
      * /home/tallison/data/github/openpdf OPENPDF https://github.com/LibrePDF/OpenPDF
      * /home/tallison/data/github/ocrmypdf OCRMYPDF https://github.com/jbarlow83/OCRmyPDF
      * /home/tallison/data/github/laraval-snappy LARAVEL_SNAPPY https://github.com/barryvdh/laravel-snappy
-     *
+     * /Users/allison/data/github/pdfminer PDFMINER https://github.com/pdfminer/pdfminer.six
      */
 
     /**
@@ -60,49 +61,54 @@ public class GithubScraper {
     private static final String DOCS = "docs";
     private static final String METADATA = "metadata";
 
-    private final Path docsRoot;
-    private final Path metadataRoot;
-    private final String projName;
-    private final String baseUrl;
-
     private Set<String> externalExtensions = new HashSet<>();
 
 
-    public GithubScraper(Path docsRoot, Path metadataRoot, String projName, String baseUrl) {
-        this.docsRoot = docsRoot;
-        this.metadataRoot = metadataRoot;
-        this.projName = projName;
-        this.baseUrl = baseUrl;
+    public GithubScraper() {
+        //TODO: make this configurable
         externalExtensions.add("pdf");
     }
 
     public static void main(String[] args) throws Exception {
 
         Path root = Paths.get(args[0]);
-        String projName = args[1];
-        String baseUrl = args[2];
+        String fileOrUrl = args[1];
+        if (Files.isRegularFile(Paths.get(fileOrUrl))) {
+            try (BufferedReader reader = Files.newBufferedReader(Paths.get(fileOrUrl), StandardCharsets.UTF_8)) {
+                String baseUrl = reader.readLine();
+                while (baseUrl != null) {
+                    GithubScraper scraper = new GithubScraper();
+                    System.out.println("going to get "+baseUrl);
+                    scraper.scrape(root, baseUrl);
+                    baseUrl = reader.readLine();
+                }
+            }
+        } else {
+            String baseUrl = fileOrUrl;
+            GithubScraper scraper = new GithubScraper();
+            scraper.scrape(root, baseUrl);
+        }
+
+    }
+
+    private void scrape(Path root, String baseUrl) throws ClientException, IOException {
+        String projName = FilenameUtils.getName(baseUrl);
         String lcProjName = projName.toLowerCase(Locale.US);
         Path docsRoot = root.resolve(DOCS).resolve(lcProjName);
         Path metadataRoot = root.resolve(METADATA).resolve(lcProjName);
-        GithubScraper scraper = new GithubScraper(docsRoot, metadataRoot,
-                projName, baseUrl);
-        scraper.scrape();
 
-    }
-
-    private void scrape() throws ClientException, IOException {
         Files.createDirectories(metadataRoot);
         Files.createDirectories(docsRoot);
-        int maxIssue = getMaxIssue();
+        int maxIssue = getMaxIssue(baseUrl);
         if (maxIssue < 0) {
             throw new RuntimeException("Couldn't find max issue "+maxIssue);
         }
-        for (int i = maxIssue; i > 0; i--) {
-            processIssue(i);
+        for (int i = maxIssue; i > -1; i--) {
+            processIssue(i, baseUrl, lcProjName, docsRoot, metadataRoot);
         }
     }
 
-    private int getMaxIssue() throws ClientException {
+    private int getMaxIssue(String baseUrl) throws ClientException {
         byte[] htmlBytes = null;
         String url = baseUrl + "/issues?q=is%3Aissue+sort%3Acreated-desc";
         htmlBytes = HttpUtils.get(url);
@@ -114,14 +120,16 @@ public class GithubScraper {
         return -1;
     }
 
-    private void processIssue(int issueId) {
+    private void processIssue(int issueId, String baseUrl,
+                              String lcProjName,
+                              Path docsRoot, Path metadataRoot) {
         //https://github.com/tballison/tika-addons/issues/3
         String url = "https://api.github.com/repos/tballison/tika-addons/issues/3";
-        url = "https://github.com/qpdf/qpdf/issues/391";
+        //url = "https://github.com/qpdf/qpdf/issues/391";
         url = baseUrl + "/issues/" + issueId;
         Path htmlFile = metadataRoot.resolve(issueId + ".html");
 
-        String html = getIssueHtml(issueId, url, htmlFile);
+        String html = getIssueHtml(lcProjName, issueId, url, htmlFile);
         if (html == null) {
             return;
         }
@@ -190,8 +198,8 @@ public class GithubScraper {
             }
         }
 
-        //getFiles(issueId, attachments);
-        //getExternalLinks(issueId, externalLinks);
+        getFiles(docsRoot, lcProjName, issueId, attachments);
+        getExternalLinks(docsRoot, lcProjName, issueId, externalLinks);
     }
 
     private Attachment getExternalLink(String hrefString, Instant lastModified,
@@ -222,7 +230,7 @@ public class GithubScraper {
         return new Attachment(actualURL, f, lastModified);
     }
 
-    private String getIssueHtml(int issueId, String url, Path htmlFile) {
+    private String getIssueHtml(String project, int issueId, String url, Path htmlFile) {
         byte[] htmlBytes = null;
         if (Files.isRegularFile(htmlFile)) {
             System.out.println("processing existing issue: "+issueId);
@@ -234,7 +242,7 @@ public class GithubScraper {
             }
         } else {
             try {
-                System.out.println("going to get "+issueId);
+                System.out.println("going to get "+project + ": "+issueId);
                 htmlBytes = HttpUtils.get(url);
                 Thread.sleep(1000);
             } catch (Exception e) {
@@ -257,7 +265,7 @@ public class GithubScraper {
 
     }
 
-    private void getFiles(int issueId, List<Attachment> attachments) {
+    private void getFiles(Path docsRoot, String projName, int issueId, List<Attachment> attachments) {
 
         int i = 0;
         for (Attachment attachment : attachments) {
@@ -272,7 +280,8 @@ public class GithubScraper {
         }
     }
 
-    private void getExternalLinks(int issueId, List<Attachment> attachments) {
+    private void getExternalLinks(Path docsRoot, String projName,
+                                  int issueId, List<Attachment> attachments) {
 
         int i = 0;
         for (Attachment attachment : attachments) {

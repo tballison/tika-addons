@@ -1,0 +1,15 @@
+https://github.com/sumatrapdfreader/sumatrapdf
+https://github.com/mozilla/pdf.js
+https://github.com/qpdf/qpdf
+https://github.com/LibrePDF/OpenPDF
+https://github.com/jbarlow83/OCRmyPDF
+https://github.com/barryvdh/laravel-snappy
+https://github.com/pdfminer/pdfminer.six
+https://github.com/diegomura/react-pdf
+https://github.com/foliojs/pdfkit
+https://github.com/barteks/cAndroidPdfViewer
+https://github.com/tabulapdf/tabula
+https://github.com/libvips/libvips
+https://github.com/prawnpdf/prawn
+https://github.com/axa-group/Parsr
+https://github.com/pdfcpu/pdfcpu

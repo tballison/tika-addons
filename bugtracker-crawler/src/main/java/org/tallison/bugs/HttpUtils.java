@@ -24,7 +24,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,8 +31,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Timer;
+import java.util.TimerTask;
 
 class HttpUtils {
+
+    static long HARD_TIMEOUT_MILLIS = 2*60*1000;
 
     /**
      *
@@ -80,6 +83,7 @@ class HttpUtils {
 
     /**
      *
+     *
      * @param url url-encoded url -- this does not encode the url!
      * @return
      * @throws ClientException
@@ -103,6 +107,17 @@ class HttpUtils {
         } catch (Exception e) {
             throw new IllegalArgumentException(url, e);
         }
+
+        final HttpGet finalHttpGet = httpGet;
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                if (finalHttpGet != null) {
+                    finalHttpGet.abort();
+                }
+            }
+        };
+        new Timer(true).schedule(task, HARD_TIMEOUT_MILLIS);
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             try (CloseableHttpResponse httpResponse = httpClient.execute(target, httpGet)) {

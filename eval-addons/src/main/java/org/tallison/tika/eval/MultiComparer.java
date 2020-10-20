@@ -44,8 +44,12 @@ public class MultiComparer {
     private void execute(Path reportDir, List<Path> dirs) throws IOException {
         Set<String> relPathUnion = getPaths(dirs);
         Map<String, ComparisonRecord> records = new TreeMap<>();
+        int cnt = 0;
         for (String relPath : relPathUnion) {
             multiCompare(relPath, dirs, records);
+            if (++cnt % 100 == 0) {
+                System.err.println("processed "+cnt + " files out of "+relPathUnion.size());
+            }
         }
         dumpResults(reportDir, records);
     }
@@ -93,6 +97,7 @@ public class MultiComparer {
     }
 
     private void multiCompare(String relPath, List<Path> dirs, Map<String, ComparisonRecord> records) throws IOException {
+
         ComparisonRecord record = new ComparisonRecord();
         List<Map<String, Integer>> wordSets = new ArrayList<>();
         for (Path dir : dirs) {

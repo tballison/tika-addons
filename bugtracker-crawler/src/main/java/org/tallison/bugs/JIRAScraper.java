@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,7 +42,8 @@ public class JIRAScraper {
     //https://issues.apache.org/jira/rest/api/2/search?jql=project=PDFBOX
     // &fields=key,issuetype,status,summary,attachment
 
-    private static String BASE = "https://issues.apache.org/jira/rest/api/2/search?jql=project=";
+    private static String URL_BASE = "https://ec.europa.eu/cefdigital/tracker";//https://issues.apache.org/jira";
+    private static String REST_QUERY_BASE = "/rest/api/2/search?jql=project=";
     private static String FIELDS = "&fields=key,issuetype,status,summary,attachment";
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
@@ -64,8 +66,9 @@ public class JIRAScraper {
     private void execute() throws IOException, ClientException {
         int start = 0;
         int total = -1;
+        int issueCount = 0;
         while (total < 0 || start < total) {
-            String url = BASE + project
+            String url = URL_BASE + REST_QUERY_BASE + project
                     //+"%20AND%20KEY=PDFBOX-1780"
                     + FIELDS + "&startAt=" + start + "&maxResults=" + maxResults;
 
@@ -84,7 +87,9 @@ public class JIRAScraper {
                     Attachment a = attachments.get(i);
                     ScraperUtils.grabAttachment(outputDir, a, issueId, i);
                 }
-                System.out.println("issue: " + issueId + " " + total);
+                issueCount++;
+                System.out.println("issue: " + issueId + " " +
+                        "start="+start+" issueCount="+issueCount+" total="+ total);
             }
             start += arr.size();
             if (arr.size() == 0) {
@@ -107,8 +112,16 @@ public class JIRAScraper {
 
 
     private List<Attachment> extractAttachments(JsonObject issueObj) {
+        if (!issueObj.has("fields")) {
+            System.err.println("couldn't find field elements: "+issueObj);
+            return Collections.EMPTY_LIST;
+        }
         JsonObject fields = issueObj.getAsJsonObject("fields");
         JsonArray attachmentArr = fields.getAsJsonArray("attachment");
+        if (attachmentArr == null) {
+            System.err.println("empty attachment array: "+issueObj);
+            return Collections.EMPTY_LIST;
+        }
         List<Attachment> attachments = new ArrayList<>();
         for (JsonElement attachment : attachmentArr) {
             String url = ((JsonObject) attachment).getAsJsonPrimitive("content").getAsString();

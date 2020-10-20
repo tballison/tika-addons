@@ -37,8 +37,8 @@ public class TestMultithreaded {
     @Test
     public void testOne() throws Exception {
         Parser p = new AutoDetectParser();
-        int numThreads = 20;
-        int numIterations = 50;
+        int numThreads = 50;
+        int numIterations = 100;
         ExecutorService ex = Executors.newFixedThreadPool(numThreads);
         ExecutorCompletionService<Integer> completionService = new ExecutorCompletionService<>(ex);
 
