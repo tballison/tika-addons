@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>lang-id-opennlp</module>
-        <module>lang-id-yalder</module>
+        <!--<module>lang-id-yalder</module> must build yalder locally snapshot -->
         <module>lang-id-optimaize</module>
         <module>lang-id-tika-eval</module>
         <module>lang-id-core</module>

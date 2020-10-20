@@ -33,6 +33,8 @@ import org.apache.tika.eval.textstats.BasicTokenCountStatsCalculator;
 import org.apache.tika.eval.textstats.CommonTokens;
 import org.apache.tika.eval.textstats.CompositeTextStatsCalculator;
 import org.apache.tika.eval.textstats.ContentLengthCalculator;
+import org.apache.tika.eval.textstats.TextProfileSignature;
+import org.apache.tika.eval.textstats.TextSha256Signature;
 import org.apache.tika.eval.textstats.TextStatsCalculator;
 import org.apache.tika.eval.textstats.TokenEntropy;
 import org.apache.tika.eval.tokens.CommonTokenResult;
@@ -75,12 +77,14 @@ public class TikaEvalDocMapper implements DocMapper {
         calculators.add(new BasicTokenCountStatsCalculator());
         calculators.add(new ContentLengthCalculator());
         calculators.add(new TokenEntropy());
+        calculators.add(new TextSha256Signature());
+        calculators.add(new TextProfileSignature());
         return new CompositeTextStatsCalculator(calculators);
     }
 
     @Override
     public List<Metadata> map(List<Metadata> metadataList) {
-        int attachments = metadataList.size()-1;
+        int totalEmbedded = metadataList.size()-1;
         long inlineAttachments = metadataList.stream().filter( m ->
                 TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
                         .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
@@ -88,7 +92,7 @@ public class TikaEvalDocMapper implements DocMapper {
         long macros = metadataList.stream().filter( m ->
                 TikaCoreProperties.EmbeddedResourceType.MACRO.toString()
                         .equals(m.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))).count();
-
+        long numAttachments = totalEmbedded-inlineAttachments-macros;
 
         List<Metadata> ret = new ArrayList<>();
         Date containerCreated = metadataList.get(0).getDate(TikaCoreProperties.CREATED);
@@ -96,7 +100,8 @@ public class TikaEvalDocMapper implements DocMapper {
             Metadata mapped = map(metadataList.get(i));
             if (i == 0) {
                 mapped.set("is_embedded", "false");
-                mapped.set("num_attachments", Integer.toString(attachments));
+                mapped.set("total_embedded", Integer.toString(totalEmbedded));
+                mapped.set("num_attachments", Long.toString(numAttachments));
                 mapped.set("num_inline_attachments", Long.toString(inlineAttachments));
                 if (metadataList.get(0).get(PagedText.N_PAGES) != null) {
                     Integer numPages = metadataList.get(0).getInt(PagedText.N_PAGES);
@@ -317,6 +322,11 @@ public class TikaEvalDocMapper implements DocMapper {
                 doc.set("pdf_percent_unicode_not_mapped", Double.toString(avg));
             }
         }
+
+        String textDigest = (String)stats.get(TextSha256Signature.class);
+        doc.add("text_digest", textDigest);
+        String textProfile = (String)stats.get(TextProfileSignature.class);
+        doc.add("text_profile_digest", textProfile);
     }
 
 }

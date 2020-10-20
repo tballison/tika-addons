@@ -42,6 +42,9 @@
       <module>bugtracker-crawler</module>
     <module>solr-tika-integration</module>
     <module>tika-cli-client</module>
+      <module>file-id</module>
+    <module>droid-wrapper</module>
+    <!--    <module>pdfbox18-shaded-integration-test</module>-->
       <module>pdftotext</module>
       <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
