@@ -1,0 +1,5 @@
+https://issues.apache.org/jira/projects/COMPRESS
+https://issues.apache.org/jira/projects/FOP
+https://issues.apache.org/jira/projects/PDFBOX
+https://issues.apache.org/jira/projects/TIKA
+https://ec.europa.eu/cefdigital/tracker/projects/DSS

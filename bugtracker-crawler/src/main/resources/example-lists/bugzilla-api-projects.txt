@@ -1,0 +1,9 @@
+# for now, there can't be a space within an argument...
+# we're doing less than optimal "split on space"
+# we're requiring issues that have at least one pdf/zip/bzip/bz2/tar/gz attachment
+-p MOZILLA -u https://bugzilla.mozilla.org/ -m pdf%20zip%20x-bzip2%20x-bzip%20x-tar%20gzip -o /home/tallison/data/bugzilla
+-p REDHAT -u https://bugzilla.redhat.com/ -m pdf%20zip%20x-bzip2%20x-bzip%20x-tar%20gzip -o /home/tallison/data/bugzilla
+-p OOO -u https://bz.apache.org/ooo -m application -o /home/tallison/data/bugzilla
+-p POI -u https://bz.apache.org/bugzilla/ -m application -o /home/tallison/data/bugzilla
+-p LIBRE_OFFICE -u https://bugs.documentfoundation.org/ -m application -o /home/tallison/data/bugzilla
+-p GHOSTSCRIPT -u https://bugs.ghostscript.com/ -m application -o /home/tallison/data/bugzilla

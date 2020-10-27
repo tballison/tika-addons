@@ -14,13 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tallison.bugs;
+package org.tallison.bugs.gitlab;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.http.client.HttpClient;
+import org.tallison.bugs.Attachment;
+import org.tallison.bugs.ClientException;
+import org.tallison.bugs.HttpUtils;
+import org.tallison.bugs.ScraperUtils;
+import org.xml.sax.SAXException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,7 +48,8 @@ import java.util.regex.Pattern;
  */
 public class GitlabScraper {
     /**
-     * /home/tallison/data/github/poppler POPPLER https://gitlab.freedesktop.org/poppler/poppler/
+     * /home/tallison/data/gitlab https://gitlab.freedesktop.org/poppler/poppler/
+     * /home/tallison/data/gitlab https://gitlab.freedesktop.org/cairo/cairo/
      *
      */
     static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*>)");
@@ -54,121 +64,113 @@ public class GitlabScraper {
     private final Path fileRoot;
     private final String projName;
     private final String baseUrl;
-
+    private final String host;
     private Set<String> externalExtensions = new HashSet<>();
 
 
-    public GitlabScraper(Path fileRoot, String projName, String baseUrl) {
+    public GitlabScraper(Path fileRoot, String projName, String baseUrl) throws MalformedURLException {
         this.fileRoot = fileRoot;
         this.projName = projName;
         this.baseUrl = baseUrl;
-        //this.domain = // get domain
+        URL base = new URL(baseUrl);
+        this.host = base.getProtocol()+"://"+base.getHost();
         externalExtensions.add("pdf");
     }
 
     public static void main(String[] args) throws Exception {
 
         Path fileRoot = Paths.get(args[0]);
-        String projName = args[1];
-        String baseUrl = args[2];
+        String baseUrl = args[1];
+        baseUrl = baseUrl.replaceAll("/+\\Z", "");
+        String projName = FilenameUtils.getName(baseUrl);
+
+        if (! baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
         GitlabScraper scraper = new GitlabScraper(fileRoot, projName, baseUrl);
         scraper.scrape();
 
     }
 
-    private void scrape() throws ClientException, IOException {
-        Files.createDirectories(fileRoot.resolve(METADATA));
-        Files.createDirectories(fileRoot.resolve(DOCS));
-        int maxIssue = getMaxIssue();
-        if (maxIssue < 0) {
-            throw new RuntimeException("Couldn't find max issue "+maxIssue);
-        }
-        for (int i = maxIssue; i > 0; i--) {
-            processIssue(i);
-        }
-    }
-
-    private int getMaxIssue() throws ClientException {
-        byte[] htmlBytes = null;
-        String url = baseUrl + "/issues";
-        htmlBytes = HttpUtils.get(url);
-        String html = new String(htmlBytes, StandardCharsets.UTF_8);
-        Matcher issueMatcher = Pattern.compile("<li class=\"issue\"([^>]+)>").matcher(html);
-        if (issueMatcher.find()) {
-            Matcher numMatcher = Pattern.compile("url=\"[^\"]+(\\d+)\"").matcher(issueMatcher.group(1));
-            if (numMatcher.find()) {
-                return Integer.parseInt(numMatcher.group(1));
+    private void scrape() throws Exception {
+        Files.createDirectories(fileRoot.resolve(METADATA+"/"+projName));
+        Files.createDirectories(fileRoot.resolve(DOCS+"/"+projName));
+        int page = 0;
+        int maxPage = -1;
+        HttpClient client = HttpUtils.getClient(baseUrl);
+        while (++page <= maxPage || maxPage < 0) {
+            GitlabResultsPage resultsPage = getPage(page, client);
+            if (resultsPage.maxPage < 0) {
+                System.err.println("bad max page from pageNum" + page);
+                break;
+            }
+            if (maxPage < 0 && resultsPage.maxPage > 0) {
+                maxPage = resultsPage.maxPage;
+            }
+            for (String relativeIssuePageUrl : resultsPage.urls) {
+                try {
+                    processIssue(relativeIssuePageUrl, client);
+                } catch (IOException|SAXException e) {
+                    System.err.println("problem with "+relativeIssuePageUrl);
+                    e.printStackTrace();
+                }
             }
         }
-        return -1;
     }
 
-    private void processIssue(int issueId) {
-        //https://gitlab.freedesktop.org/poppler/poppler/issues/885
-        String url = "https://api.github.com/repos/tballison/tika-addons/issues/3";
-        url = "https://github.com/qpdf/qpdf/issues/391";
-        url = baseUrl + "/issues/" + issueId;
-        Path htmlFile = fileRoot.resolve("metadata/" + issueId + ".html");
+    private GitlabResultsPage getPage(int pageNum, HttpClient httpClient) throws Exception {
+//        https://gitlab.freedesktop.org/poppler/poppler/-/issues?page=2&scope=all&state=all
+        String url = baseUrl + "issues?page="+pageNum+"&scope=all&state=all";
+        byte[] htmlBytes = HttpUtils.get(httpClient, url);
+        return GitlabResultsPageScraper.parse(
+                new ByteArrayInputStream(htmlBytes)
+        );
+    }
 
-        String html = getIssueHtml(issueId, url, htmlFile);
+    private void processIssue(String relativeIssueUrl, HttpClient httpClient) throws IOException, SAXException {
+        //https://gitlab.freedesktop.org/poppler/poppler/issues/885
+        String issueIdString = FilenameUtils.getName(relativeIssueUrl);
+        int issueId = Integer.parseInt(issueIdString);
+        String url = host+relativeIssueUrl;
+        Path htmlFile = fileRoot.resolve("metadata/" + projName + "/" +issueId+ ".html");
+
+        String html = getIssueHtml(httpClient, issueId, url, htmlFile);
         if (html == null) {
             return;
         }
-        //get the first.  TODO: fix this to parse xhtml structure
-        Matcher dt = DATE_TIME.matcher(html);
-        Instant lastModified = null;
-        if (dt.find()) {
-            String dtString = dt.group(1);
-            lastModified = ScraperUtils.getCreated(formatter, dtString);
-        } else {
-            System.err.println("couldn't find date: " + html);
-            return;
-        }
-        Matcher href = HREF_PATTERN.matcher(html);
-        List<Attachment> attachments = new ArrayList<>();
-        List<Attachment> externalLinks = new ArrayList<>();
-        href.reset(html);
+
+        GitlabIssue issue = GitlabIssuePageScraper.parse(host, new ByteArrayInputStream(
+                html.getBytes(StandardCharsets.UTF_8)));
+
+
         Set<String> seenAttachments = new HashSet<>();
         Set<String> seenExternalLinks = new HashSet<>();
-        while (href.find()) {
-            String hrefString = href.group(2);
-            if (href.group(2).contains("opensource.guide")) {
-                continue;
-            } else if (href.group(2).contains("travis-ci.org")) {
+
+        List<Attachment> attachments = new ArrayList<>();
+        List<Attachment> externalLinks = new ArrayList<>();
+
+        for (String attachmentHref : issue.attachedUrls) {
+            if (seenAttachments.contains(attachmentHref)) {
                 continue;
             }
-
-
-//            System.out.println(hrefString);
-            if (href.group(1) != null && href.group(1).contains("class=\"gfm") ||
-                (href.group(3) != null && href.group(3).contains("class=\"gfm"))) {
-                if (hrefString.startsWith("/")) {
-                    hrefString = baseUrl+hrefString;
-                }
-                if (seenAttachments.contains(hrefString)) {
-                    continue;
-                } else {
-                    seenAttachments.add(hrefString);
-                }
-                // System.out.println("FILE!: " + hrefString);
-                String f = FilenameUtils.getName(hrefString);
-                Attachment attachment = new Attachment(hrefString, f, lastModified);
-                attachments.add(attachment);
-            } else if (hrefString.startsWith("http:") || hrefString.startsWith("https:")) {
-                Attachment attachment = getExternalLink(hrefString, lastModified, seenExternalLinks);
-                if (attachment != null) {
-                    externalLinks.add(attachment);
-                }
-            }
+            String f = FilenameUtils.getName(attachmentHref);
+            attachments.add(new Attachment(attachmentHref, f, issue.opened));
+            seenAttachments.add(attachmentHref);
         }
 
-        getFiles(issueId, attachments);
+        for (String hrefString : issue.externalUrls) {
+            Attachment attachment = getExternalLink(hrefString, issue.opened, seenExternalLinks);
+            if (attachment != null) {
+                externalLinks.add(attachment);
+            }
+        }
+        getFiles(httpClient, issueId, attachments);
         getExternalLinks(issueId, externalLinks);
     }
 
     private Attachment getExternalLink(String hrefString, Instant lastModified,
                                        Set<String> externalLinks) {
-        if (hrefString.contains("github") || hrefString.contains("www.adobe.com")) {
+        if (hrefString.contains("gitlab") || hrefString.contains("www.adobe.com")) {
             return null;
         }
         URI url = null;
@@ -193,7 +195,7 @@ public class GitlabScraper {
         return new Attachment(actualURL, f, lastModified);
     }
 
-    private String getIssueHtml(int issueId, String url, Path htmlFile) {
+    private String getIssueHtml(HttpClient client, int issueId, String url, Path htmlFile) {
         byte[] htmlBytes = null;
         if (Files.isRegularFile(htmlFile)) {
             System.out.println("processing existing issue: "+issueId);
@@ -205,8 +207,8 @@ public class GitlabScraper {
             }
         } else {
             try {
-                System.out.println("going to get "+issueId);
-                htmlBytes = HttpUtils.get(url);
+                System.out.println("going to get "+issueId + " : "+url);
+                htmlBytes = HttpUtils.get(client, url);
                 Thread.sleep(1000);
             } catch (Exception e) {
                 if (e instanceof ClientException) {
@@ -228,12 +230,12 @@ public class GitlabScraper {
 
     }
 
-    private void getFiles(int issueId, List<Attachment> attachments) {
+    private void getFiles(HttpClient httpClient, int issueId, List<Attachment> attachments) {
 
         int i = 0;
         for (Attachment attachment : attachments) {
             try {
-                ScraperUtils.grabAttachment(fileRoot.resolve(DOCS), attachment,
+                ScraperUtils.grabAttachment(httpClient, fileRoot.resolve(DOCS+"/"+projName), attachment,
                         projName + "-" + issueId, i);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -249,11 +251,13 @@ public class GitlabScraper {
         for (Attachment attachment : attachments) {
             System.out.println("grabbing: " + attachment);
             try {
-                ScraperUtils.grabAttachment(fileRoot.resolve(DOCS), attachment,
+                ScraperUtils.grabAttachment(fileRoot.resolve(DOCS+"/"+projName), attachment,
                       projName + "-LINK-" + issueId, i);
-            } catch (IOException e) {
+            } catch (ClientException|IOException e) {
                 e.printStackTrace();
                 continue;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
             i++;
         }

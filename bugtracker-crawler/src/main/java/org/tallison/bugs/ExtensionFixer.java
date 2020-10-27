@@ -18,6 +18,7 @@ package org.tallison.bugs;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tika.mime.MediaType;
 
 import java.io.File;
@@ -26,8 +27,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +105,7 @@ public class ExtensionFixer {
         DONT_CHANGE_ORIG_EXT.add(".vdx");//xml
         DONT_CHANGE_ORIG_EXT.add(".abw");//xml
         DONT_CHANGE_ORIG_EXT.add(".xcd");//xml
+        DONT_CHANGE_ORIG_EXT.add(".xconf");//xml config file for Apache FOP
         //to add  ott scc sci fsxw -> zip
         //fsxw -> xml
         //odt -> ott
@@ -113,15 +119,28 @@ public class ExtensionFixer {
 
     public static void main(String[] args) {
         Path dir = Paths.get(args[0]);
-        process(dir);
+        boolean dryRun = false;
+        if (args.length > 1 && args[1].
+                toLowerCase(Locale.US).contains("dryrun")) {
+            dryRun = true;
+        }
+        Map<String, TokenCounts> fromTo = new HashMap<>();
+        process(dir, fromTo, dryRun);
+
+        for (String from : fromTo.keySet()) {
+            TokenCounts tk = fromTo.get(from);
+            for (Map.Entry<String, MutableInt> e : tk.tokens.entrySet()) {
+                System.out.println(from+"\t->\t"+e.getKey()+"\t"+e.getValue().intValue());
+            }
+        }
     }
 
-    private static void process(Path path) {
+    private static void process(Path path, Map<String, TokenCounts> fromTo, boolean dryRun) {
         if (Files.isDirectory(path)) {
-            processDir(path);
+            processDir(path, fromTo, dryRun);
         } else {
             try {
-                processFile(path);
+                processFile(path, fromTo, dryRun);
             } catch (IOException e) {
                 System.err.println(path);
                 e.printStackTrace();
@@ -129,7 +148,7 @@ public class ExtensionFixer {
         }
     }
 
-    private static void processFile(Path path) throws IOException {
+    private static void processFile(Path path, Map<String, TokenCounts> fromTo, boolean dryRun) throws IOException {
         String origExt = FilenameUtils.getExtension(path.getFileName().toString());
         //FilenameUtils does not include the initial ".", but Tika does.
         //we assume the initial "." from here on...
@@ -169,7 +188,12 @@ public class ExtensionFixer {
             newExt.equals(".")) {
             return;
         }
-
+        TokenCounts tk = fromTo.get(origExt);
+        if (tk == null) {
+            tk = new TokenCounts();
+            fromTo.put(origExt, tk);
+        }
+        tk.increment(newExt);
         String fileName = path.getFileName().toString();
         String newFileName = fileName.substring(0, fileName.length()-origExt.length());
         newFileName += newExt;
@@ -183,12 +207,34 @@ public class ExtensionFixer {
             return;
         }
         System.out.println("mv "+path.toAbsolutePath() + " -> "+targ.toAbsolutePath());
-        Files.move(path, targ, StandardCopyOption.ATOMIC_MOVE);
+        if (! dryRun) {
+            Files.move(path, targ, StandardCopyOption.ATOMIC_MOVE);
+        }
     }
 
-    private static void processDir(Path path) {
+    private static void processDir(Path path, Map<String, TokenCounts> fromTo, boolean dryRun) {
         for (File f : path.toFile().listFiles()) {
-            process(f.toPath());
+            process(f.toPath(), fromTo, dryRun);
+        }
+    }
+
+    private static class TokenCounts implements Comparable {
+        Map<String, MutableInt> tokens = new HashMap<>();
+        int count = 0;
+        void increment(String token) {
+            MutableInt cnt = tokens.get(token);
+            if (cnt == null) {
+                cnt = new MutableInt(1);
+                tokens.put(token, cnt);
+            } else {
+                cnt.increment();
+            }
+            count++;
+        }
+
+        @Override
+        public int compareTo(Object o) {
+            return Integer.compare(this.count, ((TokenCounts)o).count);
         }
     }
 }

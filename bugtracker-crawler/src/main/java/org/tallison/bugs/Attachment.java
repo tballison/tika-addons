@@ -18,7 +18,7 @@ package org.tallison.bugs;
 
 import java.time.Instant;
 
-class Attachment {
+public class Attachment {
     String attachmentUrl;
     String fileName;
     Instant created;

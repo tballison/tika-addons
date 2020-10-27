@@ -18,6 +18,7 @@ package org.tallison.bugs;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -71,8 +72,8 @@ public class GithubScraper {
 
     public static void main(String[] args) throws Exception {
 
-        Path root = Paths.get(args[0]);
-        String fileOrUrl = args[1];
+        String fileOrUrl = args[0];
+        Path root = Paths.get(args[1]);
         if (Files.isRegularFile(Paths.get(fileOrUrl))) {
             try (BufferedReader reader = Files.newBufferedReader(Paths.get(fileOrUrl), StandardCharsets.UTF_8)) {
                 String baseUrl = reader.readLine();
@@ -122,14 +123,15 @@ public class GithubScraper {
 
     private void processIssue(int issueId, String baseUrl,
                               String lcProjName,
-                              Path docsRoot, Path metadataRoot) {
+                              Path docsRoot, Path metadataRoot) throws ClientException {
+        HttpClient httpClient = HttpUtils.getClient(baseUrl);
         //https://github.com/tballison/tika-addons/issues/3
         String url = "https://api.github.com/repos/tballison/tika-addons/issues/3";
         //url = "https://github.com/qpdf/qpdf/issues/391";
         url = baseUrl + "/issues/" + issueId;
         Path htmlFile = metadataRoot.resolve(issueId + ".html");
 
-        String html = getIssueHtml(lcProjName, issueId, url, htmlFile);
+        String html = getIssueHtml(httpClient, lcProjName, issueId, url, htmlFile);
         if (html == null) {
             return;
         }
@@ -198,7 +200,7 @@ public class GithubScraper {
             }
         }
 
-        getFiles(docsRoot, lcProjName, issueId, attachments);
+        getFiles(httpClient, docsRoot, lcProjName, issueId, attachments);
         getExternalLinks(docsRoot, lcProjName, issueId, externalLinks);
     }
 
@@ -230,7 +232,7 @@ public class GithubScraper {
         return new Attachment(actualURL, f, lastModified);
     }
 
-    private String getIssueHtml(String project, int issueId, String url, Path htmlFile) {
+    private String getIssueHtml(HttpClient httpClient, String project, int issueId, String url, Path htmlFile) {
         byte[] htmlBytes = null;
         if (Files.isRegularFile(htmlFile)) {
             System.out.println("processing existing issue: "+issueId);
@@ -243,7 +245,7 @@ public class GithubScraper {
         } else {
             try {
                 System.out.println("going to get "+project + ": "+issueId);
-                htmlBytes = HttpUtils.get(url);
+                htmlBytes = HttpUtils.get(httpClient, url);
                 Thread.sleep(1000);
             } catch (Exception e) {
                 if (e instanceof ClientException) {
@@ -265,12 +267,13 @@ public class GithubScraper {
 
     }
 
-    private void getFiles(Path docsRoot, String projName, int issueId, List<Attachment> attachments) {
+    private void getFiles(HttpClient httpClient,
+                          Path docsRoot, String projName, int issueId, List<Attachment> attachments) {
 
         int i = 0;
         for (Attachment attachment : attachments) {
             try {
-                ScraperUtils.grabAttachment(docsRoot, attachment,
+                ScraperUtils.grabAttachment(httpClient, docsRoot, attachment,
                         projName + "-" + issueId, i);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -287,9 +290,11 @@ public class GithubScraper {
         for (Attachment attachment : attachments) {
             System.out.println("grabbing: " + attachment);
             try {
-                ScraperUtils.grabAttachment(docsRoot, attachment,
+                ScraperUtils.grabAttachment(
+                        HttpUtils.getClient(attachment.attachmentUrl),
+                        docsRoot, attachment,
                       projName + "-LINK-" + issueId, i);
-            } catch (IOException e) {
+            } catch (IOException | ClientException e) {
                 e.printStackTrace();
                 continue;
             }

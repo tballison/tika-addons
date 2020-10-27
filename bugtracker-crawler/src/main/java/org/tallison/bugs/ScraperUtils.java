@@ -17,19 +17,18 @@
 package org.tallison.bugs;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 import org.apache.tika.Tika;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MimeTypeException;
+import org.xml.sax.Attributes;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -39,7 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 
-class ScraperUtils {
+public class ScraperUtils {
 
     private static Tika TIKA = new Tika();
     private static TikaConfig TIKA_CONFIG = TikaConfig.getDefaultConfig();
@@ -56,17 +55,21 @@ class ScraperUtils {
         return Instant.now();
     }
 
+    public static String getExtensionFromMime(String mimeString) {
+        try {
+            return TIKA_CONFIG.getMimeRepository().forName(
+                    mimeString).getExtension();
+        } catch (MimeTypeException e) {
+
+        }
+        return null;
+    }
     public static String getExtension(Path targ) {
         try (InputStream tis = TikaInputStream.get(targ)) {
             MediaType mt = TIKA.getDetector().detect(tis, new Metadata());
-            try {
-                String ext = TIKA_CONFIG.getMimeRepository().forName(
-                        mt.toString()).getExtension();
-                if (ext != null) {
-                    return ext;
-                }
-            } catch (MimeTypeException e) {
-                e.printStackTrace();
+            String ext = getExtensionFromMime(mt.toString());
+            if (ext != null) {
+                return ext;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -108,7 +111,12 @@ class ScraperUtils {
         return targ;
     }
 
-    public static void grabAttachment(Path root, Attachment a, String issueId, int i) throws IOException {
+    public static void grabAttachment(Path root, Attachment a, String issueId, int i) throws
+            ClientException, IOException {
+        grabAttachment(HttpUtils.getClient(a.attachmentUrl), root, a, issueId, i);
+    }
+
+    public static void grabAttachment(HttpClient httpClient, Path root, Attachment a, String issueId, int i) throws IOException {
 
         Path targ = getInitialTarget(root, a, issueId, i);
 
@@ -116,8 +124,9 @@ class ScraperUtils {
             return;
         }
         try {
-            HttpUtils.get(a.attachmentUrl, targ);
-        } catch (ClientException | IllegalArgumentException e) {
+            HttpUtils.wget(a.attachmentUrl, targ);
+//            HttpUtils.get(httpClient, a.attachmentUrl, targ);
+        } catch (IllegalArgumentException | ClientException | InterruptedException e) {
             System.err.println(a.attachmentUrl);
             e.printStackTrace();
             return;
@@ -143,4 +152,13 @@ class ScraperUtils {
 
     }
 
+    public static String getAttr(String key, Attributes attributes) {
+        for (int i = 0; i < attributes.getLength(); i++) {
+            String name = attributes.getLocalName(i);
+            if (key.equals(name)) {
+                return attributes.getValue(i);
+            }
+        }
+        return null;
+    }
 }

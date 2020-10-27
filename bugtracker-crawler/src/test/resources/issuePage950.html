@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html class="" lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<meta charset="utf-8">
+<link as="style" href="https://gitlab.freedesktop.org/assets/application-969119f639d0837f445a10ced20d3a82d2ea69d682a4e74f39a48a4e7b443d5e.css" rel="preload">
+<link as="style" href="https://gitlab.freedesktop.org/assets/highlight/themes/white-0678dba52a34ddc3b009cf294c54cfbddb9bac5991d6377ab811afe156e5a0cb.css" rel="preload">
+
+<meta content="IE=edge" http-equiv="X-UA-Compatible">
+<script>
+//<![CDATA[
+var gl = window.gl || {};
+gl.startup_calls = {"/poppler/poppler/-/issues/950/related_branches":{},"/poppler/poppler/-/issues/950/discussions.json":{},"/poppler/poppler/-/issues/950.json?serializer=sidebar_extras":{}};
+if (gl.startup_calls && window.fetch) {
+  Object.keys(gl.startup_calls).forEach(apiCall => {
+    // fetch won’t send cookies in older browsers, unless you set the credentials init option.
+    // We set to `same-origin` which is default value in modern browsers.
+    // See https://github.com/whatwg/fetch/pull/585 for more information.
+    gl.startup_calls[apiCall] = {
+      fetchCall: fetch(apiCall, { credentials: 'same-origin' })
+    };
+  });
+}
+
+
+//]]>
+</script>
+<meta content="object" property="og:type">
+<meta content="GitLab" property="og:site_name">
+<meta content="Suboptimal rendering of images with text on lowdpi screens (#950) · Issues · poppler / poppler" property="og:title">
+<meta content="Hello, when I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit &quot;ugly&quot; on my lowdpi screen (24&quot;, 1920x1200) at..." property="og:description">
+<meta content="https://gitlab.freedesktop.org/assets/gitlab_logo-7ae504fe4f68fdebb3c2034e36621930cd36ea87924c11ff65dbcb8ed50dca58.png" property="og:image">
+<meta content="64" property="og:image:width">
+<meta content="64" property="og:image:height">
+<meta content="https://gitlab.freedesktop.org/poppler/poppler/-/issues/950" property="og:url">
+<meta content="summary" property="twitter:card">
+<meta content="Suboptimal rendering of images with text on lowdpi screens (#950) · Issues · poppler / poppler" property="twitter:title">
+<meta content="Hello, when I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit &quot;ugly&quot; on my lowdpi screen (24&quot;, 1920x1200) at..." property="twitter:description">
+<meta content="https://gitlab.freedesktop.org/assets/gitlab_logo-7ae504fe4f68fdebb3c2034e36621930cd36ea87924c11ff65dbcb8ed50dca58.png" property="twitter:image">
+<meta property="twitter:label1" content="Author" /><meta property="twitter:data1" content="Jan Rathmann" />
+<title>Suboptimal rendering of images with text on lowdpi screens (#950) · Issues · poppler / poppler · GitLab</title>
+<meta content="Hello, when I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit &quot;ugly&quot; on my lowdpi screen (24&quot;, 1920x1200) at..." name="description">
+<link rel="shortcut icon" type="image/png" href="/uploads/-/system/appearance/favicon/1/fdo-favicon.ico" id="favicon" data-original-href="/uploads/-/system/appearance/favicon/1/fdo-favicon.ico" />
+
+<link rel="stylesheet" media="all" href="/assets/application-969119f639d0837f445a10ced20d3a82d2ea69d682a4e74f39a48a4e7b443d5e.css" />
+<link rel="stylesheet" media="all" href="/assets/themes/theme_indigo-1e3c170ae7fd24d137960957cba8221abf63a78f8b108e77f131b0fed6a659c7.css" />
+
+
+<link rel="stylesheet" media="all" href="/assets/highlight/themes/white-0678dba52a34ddc3b009cf294c54cfbddb9bac5991d6377ab811afe156e5a0cb.css" />
+
+<script>
+//<![CDATA[
+window.gon={};gon.features={"scopedLabels":true,"notIssuableQueries":true,"vueIssuableSidebar":false,"tributeAutocomplete":false,"vueIssuablesList":false,"designManagementTodoButton":true,"vueSidebarLabels":false,"realTimeIssueSidebar":false};
+//]]>
+</script>
+
+
+<script src="/assets/webpack/runtime.cf03c281.bundle.js" defer="defer"></script>
+<script src="/assets/webpack/main.51b8c03b.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-globalSearch-pages.admin.abuse_reports-pages.admin.groups.show-pages.admin.projects-pages.ad-c7df39f1.5e1642d0.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.boards-pages.groups.details-pages.groups.show-pages.projects-pages.projects.act-d2086b94.4f394cd6.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.projects-pages.projects.activity-pages.projects.alert_management.details-pages.project-f19d33d0.83a89131.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin-pages.admin.abuse_reports-pages.admin.application_settings-pages.admin.applicati-0560d5ec.f90824e0.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.application_settings-pages.admin.application_settings.general-pages.admin.applic-ec7127b6.ea8ce300.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.application_settings-pages.admin.application_settings.general-pages.admin.applic-c387174c.5baf1f91.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.milestones.edit-pages.groups.milestones.new-pages.projects.blame.show-pages.pro-b4ffa014.80eb9fc9.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-initGFMInput-pages.groups.milestones.edit-pages.groups.milestones.new-pages.profiles.show-pa-b3edcd69.5cba3101.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.milestones.edit-pages.groups.milestones.new-pages.projects.commit.show-pages.pr-e55a0c47.ba37421b.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.impersonation_tokens-pages.groups.boards-pages.groups.group_members-pages.groups-98e96d94.abc3d4f5.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.boards-pages.groups.issues-pages.groups.merge_requests-pages.groups.milestones.-abdd5cb2.d7ebc25d.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.abuse_reports-pages.admin.groups.show-pages.dashboard.todos.index-pages.groups.b-0e963395.e9d6a9c3.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.application_settings-pages.admin.application_settings.general-pages.admin.applic-97a3229a.000209f3.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.admin.clusters.show-pages.dashboard.issues-pages.groups.boards-pages.groups.clusters.s-82cb4040.e285345f.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.boards-pages.groups.issues-pages.groups.merge_requests-pages.projects.boards-pa-55a7ccdf.daf2173d.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.groups.boards-pages.groups.issues-pages.groups.packages.index-pages.projects.boards-pa-c98b0e1c.f44b97f2.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.projects.issues.designs-pages.projects.issues.show-pages.projects.merge_requests.show--a5b2f057.a00d725a.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/commons-pages.dashboard.milestones.show-pages.groups.boards-pages.groups.milestones.show-pages.proje-9ac9febb.f5195669.chunk.js" defer="defer"></script>
+<script src="/assets/webpack/pages.projects.issues.show.bc436a7b.chunk.js" defer="defer"></script>
+
+
+
+<meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="/zZA0Bu40g9MJxUzbKSCjzEQkQFbHZ9Zv2MD+kGb0YNA2R320ToGN6fDpBIBoZB+x+Mgcp2YLm3ok+bWPc/uzA==" />
+
+<meta name="action-cable-url" content="/-/cable" />
+<meta content="origin-when-cross-origin" name="referrer">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport">
+<meta content="#474D57" name="theme-color">
+<link rel="apple-touch-icon" type="image/x-icon" href="/assets/touch-icon-iphone-5a9cee0e8a51212e70b90c87c12f382c428870c0ff67d1eb034d884b78d2dae7.png" />
+<link rel="apple-touch-icon" type="image/x-icon" href="/assets/touch-icon-ipad-a6eec6aeb9da138e507593b464fdac213047e49d3093fc30e90d9a995df83ba3.png" sizes="76x76" />
+<link rel="apple-touch-icon" type="image/x-icon" href="/assets/touch-icon-iphone-retina-72e2aadf86513a56e050e7f0f2355deaa19cc17ed97bbe5147847f2748e5a3e3.png" sizes="120x120" />
+<link rel="apple-touch-icon" type="image/x-icon" href="/assets/touch-icon-ipad-retina-8ebe416f5313483d9c1bc772b5bbe03ecad52a54eba443e5215a22caed2a16a2.png" sizes="152x152" />
+<link color="rgb(226, 67, 41)" href="/assets/logo-d36b5212042cebc89b96df4bf6ac24e43db316143e89926c0db839ff694d2de4.svg" rel="mask-icon">
+<meta content="/assets/msapplication-tile-1196ec67452f618d39cdd85e2e3a542f76574c071051ae7effbfde01710eb17d.png" name="msapplication-TileImage">
+<meta content="#30353E" name="msapplication-TileColor">
+
+
+
+
+</head>
+
+<body class="ui-indigo tab-width-8  gl-browser-generic gl-platform-other" data-find-file="/poppler/poppler/-/find_file/master" data-group="poppler" data-namespace-id="1242" data-page="projects:issues:show" data-page-type-id="950" data-project="poppler" data-project-id="882">
+<script>
+//<![CDATA[
+gl = window.gl || {};
+gl.GfmAutoComplete = gl.GfmAutoComplete || {};
+gl.GfmAutoComplete.dataSources = {"members":"/poppler/poppler/-/autocomplete_sources/members?type=Issue\u0026type_id=950","issues":"/poppler/poppler/-/autocomplete_sources/issues","mergeRequests":"/poppler/poppler/-/autocomplete_sources/merge_requests","labels":"/poppler/poppler/-/autocomplete_sources/labels?type=Issue\u0026type_id=950","milestones":"/poppler/poppler/-/autocomplete_sources/milestones","commands":"/poppler/poppler/-/autocomplete_sources/commands?type=Issue\u0026type_id=950","snippets":"/poppler/poppler/-/autocomplete_sources/snippets"};
+
+
+//]]>
+</script>
+<script>
+//<![CDATA[
+gl = window.gl || {};
+gl.client = {"isGeneric":true,"isOther":true};
+
+
+//]]>
+</script>
+
+
+<header class="navbar navbar-gitlab navbar-expand-sm js-navbar" data-qa-selector="navbar">
+<a class="sr-only gl-accessibility" href="#content-body" tabindex="1">Skip to content</a>
+<div class="container-fluid">
+<div class="header-content">
+<div class="title-container">
+<h1 class="title">
+<span class="gl-sr-only">GitLab</span>
+<a title="Dashboard" id="logo" href="/"><img class="brand-header-logo lazy" data-src="/uploads/-/system/appearance/header_logo/1/fdo-logo.png" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+</a></h1>
+<ul class="list-unstyled navbar-sub-nav">
+<li class="home"><a title="Projects" class="dashboard-shortcuts-projects" href="/explore">Projects
+</a></li><li class=""><a title="Groups" class="dashboard-shortcuts-groups" href="/explore/groups">Groups
+</a></li><li class=""><a title="Snippets" class="dashboard-shortcuts-snippets" href="/explore/snippets">Snippets
+</a></li><li>
+<a title="About GitLab CE" href="/help">Help</a>
+</li>
+</ul>
+
+</div>
+<div class="navbar-collapse collapse">
+<ul class="nav navbar-nav">
+<li class="nav-item d-none d-lg-block m-auto">
+<div class="search search-form" data-track-event="activate_form_input" data-track-label="navbar_search" data-track-value="">
+<form class="form-inline" action="/search" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="&#x2713;" /><div class="search-input-container">
+<div class="search-input-wrap">
+<div class="dropdown" data-url="/search/autocomplete">
+<input type="search" name="search" id="search" placeholder="Search or jump to…" class="search-input dropdown-menu-toggle no-outline js-search-dashboard-options" spellcheck="false" tabindex="1" autocomplete="off" data-issues-path="/dashboard/issues" data-mr-path="/dashboard/merge_requests" data-qa-selector="search_term_field" aria-label="Search or jump to…" />
+<button class="hidden js-dropdown-search-toggle" data-toggle="dropdown" type="button"></button>
+<div class="dropdown-menu dropdown-select js-dashboard-search-options">
+<div class="dropdown-content"><ul>
+<li class="dropdown-menu-empty-item">
+<a>
+Loading...
+</a>
+</li>
+</ul>
+</div><div class="dropdown-loading"><i aria-hidden="true" data-hidden="true" class="fa fa-spinner fa-spin"></i></div>
+</div>
+<svg class="s16 search-icon" data-testid="search-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#search"></use></svg>
+<svg class="s16 clear-icon js-clear-input" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg>
+</div>
+</div>
+</div>
+<input type="hidden" name="group_id" id="group_id" value="1242" class="js-search-group-options" data-group-path="poppler" data-name="poppler" data-issues-path="/groups/poppler/-/issues" data-mr-path="/groups/poppler/-/merge_requests" />
+<input type="hidden" name="project_id" id="search_project_id" value="882" class="js-search-project-options" data-project-path="poppler" data-name="poppler" data-issues-path="/poppler/poppler/-/issues" data-mr-path="/poppler/poppler/-/merge_requests" data-issues-disabled="false" />
+<input type="hidden" name="scope" id="scope" value="issues" />
+<input type="hidden" name="search_code" id="search_code" value="false" />
+<input type="hidden" name="snippets" id="snippets" value="false" />
+<input type="hidden" name="repository_ref" id="repository_ref" />
+<input type="hidden" name="nav_source" id="nav_source" value="navbar" />
+<div class="search-autocomplete-opts hide" data-autocomplete-path="/search/autocomplete" data-autocomplete-project-id="882"></div>
+</form></div>
+
+</li>
+<li class="nav-item d-inline-block d-lg-none">
+<a title="Search" aria-label="Search" data-toggle="tooltip" data-placement="bottom" data-container="body" href="/search?project_id=882"><svg class="s16" data-testid="search-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#search"></use></svg>
+</a></li>
+<li class="nav-item header-help dropdown d-none d-md-block">
+<a class="header-help-dropdown-toggle" data-toggle="dropdown" href="/help"><span class="gl-sr-only">
+Help
+</span>
+<svg class="s16" data-testid="question-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#question"></use></svg>
+<svg class="s16 caret-down" data-testid="angle-down-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#angle-down"></use></svg>
+</a><div class="dropdown-menu dropdown-menu-right">
+<ul>
+
+<li>
+<a href="/help">Help</a>
+</li>
+<li>
+<a href="https://about.gitlab.com/getting-help/">Support</a>
+</li>
+<li>
+<a target="_blank" class="text-nowrap" rel="noopener noreferrer" data-track-event="click_forum" data-track-property="question_menu" href="https://forum.gitlab.com/">Community forum</a>
+
+</li>
+<li>
+<button class="js-shortcuts-modal-trigger" type="button">
+Keyboard shortcuts
+<span aria-hidden class="text-secondary float-right">?</span>
+</button>
+</li>
+<li class="divider"></li>
+<li>
+<a href="https://about.gitlab.com/submit-feedback">Submit feedback</a>
+</li>
+<li>
+<a target="_blank" class="text-nowrap" href="https://about.gitlab.com/contributing">Contribute to GitLab
+</a>
+</li>
+
+</ul>
+
+</div>
+</li>
+<li class="nav-item">
+<div>
+<a class="btn btn-sign-in" href="/users/sign_in?redirect_to_referer=yes">Sign in / Register</a>
+</div>
+</li>
+</ul>
+</div>
+<button class="navbar-toggler d-block d-sm-none" type="button">
+<span class="sr-only">Toggle navigation</span>
+<svg class="s12 more-icon js-navbar-toggle-right" data-testid="ellipsis_h-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#ellipsis_h"></use></svg>
+<svg class="s12 close-icon js-navbar-toggle-left" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg>
+</button>
+</div>
+</div>
+</header>
+
+<div class="layout-page page-gutter page-with-contextual-sidebar right-sidebar-expanded">
+<div class="nav-sidebar">
+<div class="nav-sidebar-inner-scroll">
+<div class="context-header">
+<a title="poppler" href="/poppler/poppler"><div class="avatar-container rect-avatar s40 project-avatar">
+<div class="avatar s40 avatar-tile identicon bg1">P</div>
+</div>
+<div class="sidebar-context-title">
+poppler
+</div>
+</a></div>
+<ul class="sidebar-top-level-items qa-project-sidebar">
+<li class="home"><a class="shortcuts-project rspec-project-link" data-qa-selector="project_link" href="/poppler/poppler"><div class="nav-icon-container">
+<svg class="s16" data-testid="home-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#home"></use></svg>
+</div>
+<span class="nav-item-name">
+Project overview
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler"><strong class="fly-out-top-item-name">
+Project overview
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a title="Project details" class="shortcuts-project" href="/poppler/poppler"><span>Details</span>
+</a></li><li class=""><a title="Activity" class="shortcuts-project-activity" data-qa-selector="activity_link" href="/poppler/poppler/activity"><span>Activity</span>
+</a></li><li class=""><a title="Releases" class="shortcuts-project-releases" href="/poppler/poppler/-/releases"><span>Releases</span>
+</a></li></ul>
+</li><li class=""><a class="shortcuts-tree" data-qa-selector="repository_link" href="/poppler/poppler/-/tree/master"><div class="nav-icon-container">
+<svg class="s16" data-testid="doc-text-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#doc-text"></use></svg>
+</div>
+<span class="nav-item-name" id="js-onboarding-repo-link">
+Repository
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/tree/master"><strong class="fly-out-top-item-name">
+Repository
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a href="/poppler/poppler/-/tree/master">Files
+</a></li><li class=""><a id="js-onboarding-commits-link" href="/poppler/poppler/-/commits/master">Commits
+</a></li><li class=""><a data-qa-selector="branches_link" id="js-onboarding-branches-link" href="/poppler/poppler/-/branches">Branches
+</a></li><li class=""><a data-qa-selector="tags_link" href="/poppler/poppler/-/tags">Tags
+</a></li><li class=""><a href="/poppler/poppler/-/graphs/master">Contributors
+</a></li><li class=""><a href="/poppler/poppler/-/network/master">Graph
+</a></li><li class=""><a href="/poppler/poppler/-/compare?from=master&amp;to=master">Compare
+</a></li>
+</ul>
+</li><li class="active"><a class="shortcuts-issues qa-issues-item" href="/poppler/poppler/-/issues"><div class="nav-icon-container">
+<svg class="s16" data-testid="issues-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#issues"></use></svg>
+</div>
+<span class="nav-item-name" id="js-onboarding-issues-link">
+Issues
+</span>
+<span class="badge badge-pill count issue_counter">
+611
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/issues"><strong class="fly-out-top-item-name">
+Issues
+</strong>
+<span class="badge badge-pill count issue_counter fly-out-badge">
+611
+</span>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a title="Issues" href="/poppler/poppler/-/issues"><span>
+List
+</span>
+</a></li><li class=""><a title="Boards" data-qa-selector="issue_boards_link" href="/poppler/poppler/-/boards"><span>
+Boards
+</span>
+</a></li><li class=""><a title="Labels" class="qa-labels-link" href="/poppler/poppler/-/labels"><span>
+Labels
+</span>
+</a></li><li class=""><a title="Service Desk" href="/poppler/poppler/-/issues/service_desk">Service Desk
+</a></li>
+<li class=""><a title="Milestones" class="qa-milestones-link" href="/poppler/poppler/-/milestones"><span>
+Milestones
+</span>
+</a></li>
+</ul>
+</li><li class=""><a class="shortcuts-merge_requests" data-qa-selector="merge_requests_link" href="/poppler/poppler/-/merge_requests"><div class="nav-icon-container">
+<svg class="s16" data-testid="git-merge-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#git-merge"></use></svg>
+</div>
+<span class="nav-item-name" id="js-onboarding-mr-link">
+Merge Requests
+</span>
+<span class="badge badge-pill count merge_counter js-merge-counter">
+38
+</span>
+</a><ul class="sidebar-sub-level-items is-fly-out-only">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/merge_requests"><strong class="fly-out-top-item-name">
+Merge Requests
+</strong>
+<span class="badge badge-pill count merge_counter js-merge-counter fly-out-badge">
+38
+</span>
+</a></li></ul>
+</li>
+<li class=""><a class="shortcuts-pipelines qa-link-pipelines rspec-link-pipelines" data-qa-selector="ci_cd_link" href="/poppler/poppler/-/pipelines"><div class="nav-icon-container">
+<svg class="s16" data-testid="rocket-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#rocket"></use></svg>
+</div>
+<span class="nav-item-name" id="js-onboarding-pipelines-link">
+CI / CD
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/pipelines"><strong class="fly-out-top-item-name">
+CI / CD
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a title="Pipelines" class="shortcuts-pipelines" href="/poppler/poppler/-/pipelines"><span>
+Pipelines
+</span>
+</a></li><li class=""><a title="Jobs" class="shortcuts-builds" href="/poppler/poppler/-/jobs"><span>
+Jobs
+</span>
+</a></li><li class=""><a title="Schedules" class="shortcuts-builds" href="/poppler/poppler/-/pipeline_schedules"><span>
+Schedules
+</span>
+</a></li>
+</ul>
+</li>
+<li class=""><a class="shortcuts-operations" data-qa-selector="operations_link" href="/poppler/poppler/-/environments/metrics"><div class="nav-icon-container">
+<svg class="s16" data-testid="cloud-gear-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#cloud-gear"></use></svg>
+</div>
+<span class="nav-item-name">
+Operations
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/environments/metrics"><strong class="fly-out-top-item-name">
+Operations
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+
+<li class=""><a title="Environments" class="shortcuts-environments qa-operations-environments-link" href="/poppler/poppler/-/environments"><span>
+Environments
+</span>
+</a></li>
+</ul>
+</li><li class=""><a data-qa-selector="packages_link" href="/poppler/poppler/container_registry"><div class="nav-icon-container">
+<svg class="s16" data-testid="package-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#package"></use></svg>
+</div>
+<span class="nav-item-name">
+Packages &amp; Registries
+</span>
+</a><ul class="sidebar-sub-level-items">
+<li class="fly-out-top-item"><a href="/poppler/poppler/container_registry"><strong class="fly-out-top-item-name">
+Packages &amp; Registries
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a class="shortcuts-container-registry" title="Container Registry" href="/poppler/poppler/container_registry"><span>Container Registry</span>
+</a></li></ul>
+</li>
+<li class=""><a data-qa-selector="analytics_anchor" href="/poppler/poppler/-/value_stream_analytics"><div class="nav-icon-container">
+<svg class="s16" data-testid="chart-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#chart"></use></svg>
+</div>
+<span class="nav-item-name" data-qa-selector="analytics_link">
+Analytics
+</span>
+</a><ul class="sidebar-sub-level-items" data-qa-selector="analytics_sidebar_submenu">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/value_stream_analytics"><strong class="fly-out-top-item-name">
+Analytics
+</strong>
+</a></li><li class="divider fly-out-top-item"></li>
+<li class=""><a title="CI / CD" href="/poppler/poppler/-/pipelines/charts"><span>CI / CD</span>
+</a></li><li class=""><a class="shortcuts-repository-charts" title="Repository" href="/poppler/poppler/-/graphs/master/charts"><span>Repository</span>
+</a></li><li class=""><a class="shortcuts-project-cycle-analytics" title="Value Stream" href="/poppler/poppler/-/value_stream_analytics"><span>Value Stream</span>
+</a></li></ul>
+</li>
+<li class=""><a class="shortcuts-snippets" data-qa-selector="snippets_link" href="/poppler/poppler/-/snippets"><div class="nav-icon-container">
+<svg class="s16" data-testid="snippet-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#snippet"></use></svg>
+</div>
+<span class="nav-item-name">
+Snippets
+</span>
+</a><ul class="sidebar-sub-level-items is-fly-out-only">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/snippets"><strong class="fly-out-top-item-name">
+Snippets
+</strong>
+</a></li></ul>
+</li><li class=""><a title="Members" class="qa-members-link" id="js-onboarding-members-link" href="/poppler/poppler/-/project_members"><div class="nav-icon-container">
+<svg class="s16" data-testid="users-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#users"></use></svg>
+</div>
+<span class="nav-item-name">
+Members
+</span>
+</a><ul class="sidebar-sub-level-items is-fly-out-only">
+<li class="fly-out-top-item"><a href="/poppler/poppler/-/project_members"><strong class="fly-out-top-item-name">
+Members
+</strong>
+</a></li></ul>
+</li><a class="toggle-sidebar-button js-toggle-sidebar qa-toggle-sidebar rspec-toggle-sidebar" role="button" title="Toggle sidebar" type="button">
+<svg class="s16 icon-chevron-double-lg-left" data-testid="chevron-double-lg-left-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#chevron-double-lg-left"></use></svg>
+<svg class="s16 icon-chevron-double-lg-right" data-testid="chevron-double-lg-right-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#chevron-double-lg-right"></use></svg>
+<span class="collapse-text">Collapse sidebar</span>
+</a>
+<button name="button" type="button" class="close-nav-button"><svg class="s16" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg>
+<span class="collapse-text">Close sidebar</span>
+</button>
+<li class="hidden">
+<a title="Activity" class="shortcuts-project-activity" href="/poppler/poppler/activity"><span>
+Activity
+</span>
+</a></li>
+<li class="hidden">
+<a title="Network" class="shortcuts-network" href="/poppler/poppler/-/network/master">Graph
+</a></li>
+<li class="hidden">
+<a class="shortcuts-new-issue" href="/poppler/poppler/-/issues/new">Create a new issue
+</a></li>
+<li class="hidden">
+<a title="Jobs" class="shortcuts-builds" href="/poppler/poppler/-/jobs">Jobs
+</a></li>
+<li class="hidden">
+<a title="Commits" class="shortcuts-commits" href="/poppler/poppler/-/commits/master">Commits
+</a></li>
+<li class="hidden">
+<a title="Issue Boards" class="shortcuts-issue-boards" href="/poppler/poppler/-/boards">Issue Boards</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div class="content-wrapper">
+<div class="mobile-overlay"></div>
+
+<div class="alert-wrapper">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<nav class="breadcrumbs container-fluid container-limited limit-container-width" role="navigation">
+<div class="breadcrumbs-container">
+<button name="button" type="button" class="toggle-mobile-nav"><span class="sr-only">Open sidebar</span>
+<svg class="s16" data-testid="hamburger-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#hamburger"></use></svg>
+</button><div class="breadcrumbs-links js-title-container" data-qa-selector="breadcrumb_links_content">
+<ul class="list-unstyled breadcrumbs-list js-breadcrumbs-list">
+<li><a class="group-path breadcrumb-item-text js-breadcrumb-item-text " href="/poppler">poppler</a><svg class="s8 breadcrumbs-list-angle" data-testid="angle-right-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#angle-right"></use></svg></li> <li><a href="/poppler/poppler"><span class="breadcrumb-item-text js-breadcrumb-item-text">poppler</span></a><svg class="s8 breadcrumbs-list-angle" data-testid="angle-right-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#angle-right"></use></svg></li>
+<li><a href="/poppler/poppler/-/issues">Issues</a><svg class="s8 breadcrumbs-list-angle" data-testid="angle-right-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#angle-right"></use></svg></li>
+
+<li>
+<h2 class="breadcrumbs-sub-title"><a href="/poppler/poppler/-/issues/950">#950</a></h2>
+</li>
+</ul>
+</div>
+
+</div>
+</nav>
+
+<div class="d-flex"></div>
+</div>
+<div class="container-fluid container-limited limit-container-width">
+<div class="content" id="content-body">
+<div class="flash-container flash-container-page sticky">
+</div>
+
+
+
+<div class="detail-page-header">
+<div class="detail-page-header-body">
+<div class="hidden issuable-status-box status-box status-box-issue-closed">
+<svg class="s16 d-block d-sm-none" data-testid="mobile-issue-close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#mobile-issue-close"></use></svg>
+<div class="d-none d-sm-block">
+Closed
+</div>
+</div>
+<div class="issuable-status-box status-box status-box-open">
+<svg class="s16 d-block d-sm-none" data-testid="issue-open-m-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#issue-open-m"></use></svg>
+<span class="d-none d-sm-block">Open</span>
+</div>
+<div class="issuable-meta">
+<div id="js-issuable-header-warnings"></div>
+Opened <time class="js-timeago" title="Aug 9, 2020 5:20pm" datetime="2020-08-09T17:20:57Z" data-toggle="tooltip" data-placement="top" data-container="body">Aug 09, 2020</time> by <strong><a class="author-link js-user-link  d-none d-sm-inline" data-user-id="18639" data-username="JanR" data-name="Jan Rathmann" href="/JanR"><img width="24" class="avatar avatar-inline s24 lazy" alt="" data-src="https://secure.gravatar.com/avatar/686a182ad02a01be9aa0ecbe9e112fe3?s=48&amp;d=identicon" data-src="https://secure.gravatar.com/avatar/686a182ad02a01be9aa0ecbe9e112fe3?s=48&amp;d=identicon" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" /><span class="author">Jan Rathmann</span></a><a class="author-link js-user-link  d-inline d-sm-none" data-user-id="18639" data-username="JanR" data-name="Jan Rathmann" href="/JanR"><span class="author">@JanR</span></a></strong><span class="has-tooltip gl-ml-2" title="1st contribution!"></span><span id="task_status" class="d-none d-sm-none d-md-inline-block gl-ml-3"></span><span id="task_status_short" class="d-md-none"></span>
+</div>
+<a class="btn btn-default float-right d-block d-sm-none gutter-toggle issuable-gutter-toggle js-sidebar-toggle" href="#">
+<svg class="s16" data-testid="chevron-double-lg-left-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#chevron-double-lg-left"></use></svg>
+</a>
+</div>
+<div class="detail-page-header-actions js-issuable-actions js-issuable-buttons" data-action="close-reopen">
+<div class="clearfix issue-btn-group dropdown">
+<button class="btn btn-default float-left d-md-none d-lg-none d-xl-none" data-toggle="dropdown" type="button">
+Options
+<i aria-hidden="true" data-hidden="true" class="fa fa-caret-down"></i>
+</button>
+<div class="dropdown-menu dropdown-menu-right d-lg-none d-xl-none">
+<ul>
+<li><a href="/-/abuse_reports/new?ref_url=https%3A%2F%2Fgitlab.freedesktop.org%2Fpoppler%2Fpoppler%2F-%2Fissues%2F950&amp;user_id=18639">Report abuse</a></li>
+<li><a id="new_issue_link" href="/poppler/poppler/-/issues/new">New issue</a></li>
+</ul>
+</div>
+</div>
+<a class="d-none d-sm-none d-md-block btn btn-grouped btn-close-color" title="Report abuse" href="/-/abuse_reports/new?ref_url=https%3A%2F%2Fgitlab.freedesktop.org%2Fpoppler%2Fpoppler%2F-%2Fissues%2F950&amp;user_id=18639">Report abuse</a>
+
+<a class="d-none d-sm-none d-md-block btn btn-grouped btn-success btn-inverted" title="New issue" id="new_issue_link" href="/poppler/poppler/-/issues/new">New issue
+</a></div>
+</div>
+<div class="issue-details issuable-details">
+<div class="detail-page-description content-block">
+<script id="js-issuable-app-initial-data" type="application/json">{&quot;endpoint&quot;:&quot;/poppler/poppler/-/issues/950&quot;,&quot;updateEndpoint&quot;:&quot;/poppler/poppler/-/issues/950.json&quot;,&quot;canUpdate&quot;:false,&quot;canDestroy&quot;:false,&quot;issuableRef&quot;:&quot;#950&quot;,&quot;issuableStatus&quot;:&quot;opened&quot;,&quot;markdownPreviewPath&quot;:&quot;/poppler/poppler/preview_markdown&quot;,&quot;markdownDocsPath&quot;:&quot;/help/user/markdown&quot;,&quot;lockVersion&quot;:2,&quot;issuableTemplateNamesPath&quot;:&quot;/poppler/poppler/description_templates/names/issue&quot;,&quot;initialTitleHtml&quot;:&quot;Suboptimal rendering of images with text on lowdpi screens&quot;,&quot;initialTitleText&quot;:&quot;Suboptimal rendering of images with text on lowdpi screens&quot;,&quot;initialDescriptionHtml&quot;:&quot;\u003cp data-sourcepos=\&quot;1:1-1:6\&quot; dir=\&quot;auto\&quot;\u003eHello,\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;3:1-3:194\&quot; dir=\&quot;auto\&quot;\u003ewhen I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit \&quot;ugly\&quot; on my lowdpi screen (24\&quot;, 1920x1200) at some commonly used range of zoom levels.\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;5:1-5:86\&quot; dir=\&quot;auto\&quot;\u003eI only see this with Okular and qpdfview, rendering in Evince, Atril, Zathura is fine.\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;7:1-7:18\&quot; dir=\&quot;auto\&quot;\u003eSTEPS TO REPRODUCE\u003c/p\u003e\u0026#x000A;\u003col data-sourcepos=\&quot;8:1-10:0\&quot; dir=\&quot;auto\&quot;\u003e\u0026#x000A;\u003cli data-sourcepos=\&quot;8:1-8:57\&quot;\u003eOpen attached file \&quot;test.pdf\&quot; with Okular or qpdfview.\u003c/li\u003e\u0026#x000A;\u003cli data-sourcepos=\&quot;9:1-10:0\&quot;\u003eSet zoom level to 75% (or up to ~100%).\u003c/li\u003e\u0026#x000A;\u003c/ol\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;11:1-11:15\&quot; dir=\&quot;auto\&quot;\u003eOBSERVED RESULT\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;13:1-14:31\&quot; dir=\&quot;auto\&quot;\u003eText looks \&quot;rather ugly\&quot;.\u0026#x000A;(See also attached screenshot.)\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;16:1-16:15\&quot; dir=\&quot;auto\&quot;\u003eEXPECTED RESULT\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;18:1-19:57\&quot; dir=\&quot;auto\&quot;\u003eText looks \&quot;clearly readable\&quot;.\u0026#x000A;(Compare screenshot from same document opened in Evince.)\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;21:1-21:132\&quot; dir=\&quot;auto\&quot;\u003eTo reproduce this in a clean environment, I was booting live images of Kubuntu 20.04 and KDE Neon (neon-unstable-20200726-1102.iso).\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;23:1-24:43\&quot; dir=\&quot;auto\&quot;\u003eThe original bug report on the KDE bugtracker is here:\u0026#x000A;\u003ca href=\&quot;https://bugs.kde.org/show_bug.cgi?id=424817\&quot; rel=\&quot;nofollow noreferrer noopener\&quot; target=\&quot;_blank\&quot;\u003ehttps://bugs.kde.org/show_bug.cgi?id=424817\u003c/a\u003e\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;26:1-27:3\&quot; dir=\&quot;auto\&quot;\u003eKind regards,\u0026#x000A;Jan\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;29:1-29:135\&quot; dir=\&quot;auto\&quot;\u003e\u003ca href=\&quot;/poppler/poppler/uploads/7f094da749274142946538e9c4b9ea1f/test.pdf\&quot; data-link=\&quot;true\&quot; class=\&quot;gfm\&quot;\u003e Example pdf illustrating the bug (generated with &#39;img2pdf -o test.pdf test.png&#39;)\u003c/a\u003e\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;31:1-31:113\&quot; dir=\&quot;auto\&quot;\u003e\u003ca href=\&quot;/poppler/poppler/uploads/c53e719eed554a460e1f3e2875581878/test.png\&quot; data-link=\&quot;true\&quot; class=\&quot;gfm\&quot;\u003eSource image file from which the test example was generated\u003c/a\u003e\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;33:1-33:141\&quot; dir=\&quot;auto\&quot;\u003e\u003ca href=\&quot;/poppler/poppler/uploads/4fa09de6762a7c1c0b87a08a34e1ff6e/Bildschirmfoto_20200809_191836.png\&quot; data-link=\&quot;true\&quot; class=\&quot;gfm\&quot;\u003eScreenshot rendering of test.pdf with Okular (zoom level 75%)\u003c/a\u003e\u003c/p\u003e\u0026#x000A;\u003cp data-sourcepos=\&quot;35:1-35:141\&quot; dir=\&quot;auto\&quot;\u003e\u003ca href=\&quot;/poppler/poppler/uploads/807c6671c317ad986b13d5d413fef451/Bildschirmfoto_20200809_191907.png\&quot; data-link=\&quot;true\&quot; class=\&quot;gfm\&quot;\u003eScreenshot rendering of test.pdf with Evince (zoom level 75%)\u003c/a\u003e\u003c/p\u003e&quot;,&quot;initialDescriptionText&quot;:&quot;Hello,\n\nwhen I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit \&quot;ugly\&quot; on my lowdpi screen (24\&quot;, 1920x1200) at some commonly used range of zoom levels.\n\nI only see this with Okular and qpdfview, rendering in Evince, Atril, Zathura is fine.\n\nSTEPS TO REPRODUCE\n1. Open attached file \&quot;test.pdf\&quot; with Okular or qpdfview.\n2. Set zoom level to 75% (or up to ~100%).\n\nOBSERVED RESULT\n\nText looks \&quot;rather ugly\&quot;.\n(See also attached screenshot.)\n\nEXPECTED RESULT\n\nText looks \&quot;clearly readable\&quot;.\n(Compare screenshot from same document opened in Evince.)\n\nTo reproduce this in a clean environment, I was booting live images of Kubuntu 20.04 and KDE Neon (neon-unstable-20200726-1102.iso).\n\nThe original bug report on the KDE bugtracker is here:\nhttps://bugs.kde.org/show_bug.cgi?id=424817\n\nKind regards,\nJan\n\n[ Example pdf illustrating the bug (generated with &#39;img2pdf -o test.pdf test.png&#39;)](/uploads/7f094da749274142946538e9c4b9ea1f/test.pdf)\n\n[Source image file from which the test example was generated](/uploads/c53e719eed554a460e1f3e2875581878/test.png)\n\n[Screenshot rendering of test.pdf with Okular (zoom level 75%)](/uploads/4fa09de6762a7c1c0b87a08a34e1ff6e/Bildschirmfoto_20200809_191836.png)\n\n[Screenshot rendering of test.pdf with Evince (zoom level 75%)](/uploads/807c6671c317ad986b13d5d413fef451/Bildschirmfoto_20200809_191907.png)&quot;,&quot;initialTaskStatus&quot;:&quot;0 of 0 tasks completed&quot;,&quot;hasClosingMergeRequest&quot;:true,&quot;issueType&quot;:&quot;issue&quot;,&quot;zoomMeetingUrl&quot;:null,&quot;sentryIssueIdentifier&quot;:null,&quot;iid&quot;:&quot;950&quot;,&quot;projectPath&quot;:&quot;poppler&quot;,&quot;projectNamespace&quot;:&quot;poppler&quot;,&quot;updatedAt&quot;:&quot;2020-08-09T17:22:36+00:00&quot;,&quot;updatedBy&quot;:{&quot;name&quot;:&quot;Jan Rathmann&quot;,&quot;path&quot;:&quot;/JanR&quot;}}</script>
+<div id="js-issuable-app">
+<div class="title-container">
+<h2 class="title">Suboptimal rendering of images with text on lowdpi screens</h2>
+</div>
+<div class="description">
+<div class="md"><p data-sourcepos="1:1-1:6" dir="auto">Hello,</p>&#x000A;<p data-sourcepos="3:1-3:194" dir="auto">when I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit "ugly" on my lowdpi screen (24", 1920x1200) at some commonly used range of zoom levels.</p>&#x000A;<p data-sourcepos="5:1-5:86" dir="auto">I only see this with Okular and qpdfview, rendering in Evince, Atril, Zathura is fine.</p>&#x000A;<p data-sourcepos="7:1-7:18" dir="auto">STEPS TO REPRODUCE</p>&#x000A;<ol data-sourcepos="8:1-10:0" dir="auto">&#x000A;<li data-sourcepos="8:1-8:57">Open attached file "test.pdf" with Okular or qpdfview.</li>&#x000A;<li data-sourcepos="9:1-10:0">Set zoom level to 75% (or up to ~100%).</li>&#x000A;</ol>&#x000A;<p data-sourcepos="11:1-11:15" dir="auto">OBSERVED RESULT</p>&#x000A;<p data-sourcepos="13:1-14:31" dir="auto">Text looks "rather ugly".&#x000A;(See also attached screenshot.)</p>&#x000A;<p data-sourcepos="16:1-16:15" dir="auto">EXPECTED RESULT</p>&#x000A;<p data-sourcepos="18:1-19:57" dir="auto">Text looks "clearly readable".&#x000A;(Compare screenshot from same document opened in Evince.)</p>&#x000A;<p data-sourcepos="21:1-21:132" dir="auto">To reproduce this in a clean environment, I was booting live images of Kubuntu 20.04 and KDE Neon (neon-unstable-20200726-1102.iso).</p>&#x000A;<p data-sourcepos="23:1-24:43" dir="auto">The original bug report on the KDE bugtracker is here:&#x000A;<a href="https://bugs.kde.org/show_bug.cgi?id=424817" rel="nofollow noreferrer noopener" target="_blank">https://bugs.kde.org/show_bug.cgi?id=424817</a></p>&#x000A;<p data-sourcepos="26:1-27:3" dir="auto">Kind regards,&#x000A;Jan</p>&#x000A;<p data-sourcepos="29:1-29:135" dir="auto"><a href="/poppler/poppler/uploads/7f094da749274142946538e9c4b9ea1f/test.pdf" data-link="true" class="gfm"> Example pdf illustrating the bug (generated with 'img2pdf -o test.pdf test.png')</a></p>&#x000A;<p data-sourcepos="31:1-31:113" dir="auto"><a href="/poppler/poppler/uploads/c53e719eed554a460e1f3e2875581878/test.png" data-link="true" class="gfm">Source image file from which the test example was generated</a></p>&#x000A;<p data-sourcepos="33:1-33:141" dir="auto"><a href="/poppler/poppler/uploads/4fa09de6762a7c1c0b87a08a34e1ff6e/Bildschirmfoto_20200809_191836.png" data-link="true" class="gfm">Screenshot rendering of test.pdf with Okular (zoom level 75%)</a></p>&#x000A;<p data-sourcepos="35:1-35:141" dir="auto"><a href="/poppler/poppler/uploads/807c6671c317ad986b13d5d413fef451/Bildschirmfoto_20200809_191907.png" data-link="true" class="gfm">Screenshot rendering of test.pdf with Evince (zoom level 75%)</a></p></div>
+<textarea class="hidden js-task-list-field">Hello,
+gitlab_results_page
+when I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit &quot;ugly&quot; on my lowdpi screen (24&quot;, 1920x1200) at some commonly used range of zoom levels.
+
+I only see this with Okular and qpdfview, rendering in Evince, Atril, Zathura is fine.
+
+STEPS TO REPRODUCE
+1. Open attached file &quot;test.pdf&quot; with Okular or qpdfview.
+2. Set zoom level to 75% (or up to ~100%).
+
+OBSERVED RESULT
+
+Text looks &quot;rather ugly&quot;.
+(See also attached screenshot.)
+
+EXPECTED RESULT
+
+Text looks &quot;clearly readable&quot;.
+(Compare screenshot from same document opened in Evince.)
+
+To reproduce this in a clean environment, I was booting live images of Kubuntu 20.04 and KDE Neon (neon-unstable-20200726-1102.iso).
+
+The original bug report on the KDE bugtracker is here:
+https://bugs.kde.org/show_bug.cgi?id=424817
+
+Kind regards,
+Jan
+
+[ Example pdf illustrating the bug (generated with &#39;img2pdf -o test.pdf test.png&#39;)](/uploads/7f094da749274142946538e9c4b9ea1f/test.pdf)
+
+[Source image file from which the test example was generated](/uploads/c53e719eed554a460e1f3e2875581878/test.png)
+
+[Screenshot rendering of test.pdf with Okular (zoom level 75%)](/uploads/4fa09de6762a7c1c0b87a08a34e1ff6e/Bildschirmfoto_20200809_191836.png)
+
+[Screenshot rendering of test.pdf with Evince (zoom level 75%)](/uploads/807c6671c317ad986b13d5d413fef451/Bildschirmfoto_20200809_191907.png)</textarea>
+</div>
+<small class="edited-text"><span>Edited </span><time class="js-timeago issue-edited-ago js-issue-edited-ago" title="Aug 9, 2020 5:22pm" datetime="2020-08-09T17:22:36Z" data-toggle="tooltip" data-placement="bottom" data-container="body">Aug 09, 2020</time><span> by </span><a class="author-link js-user-link  " data-user-id="18639" data-username="JanR" data-name="Jan Rathmann" href="/JanR"><span class="">Jan Rathmann</span></a></small>
+</div>
+<div class="gl-border-solid gl-border-1 gl-border-gray-100 gl-rounded-base gl-mt-5 gl-p-3 gl-text-center">
+To upload designs, you'll need to enable LFS and have admin enable hashed storage. <a href="/help/user/project/issues/design_management#requirements" target="_blank" rel="noopener noreferrer">More information</a>
+</div>
+
+<div class="js-related-issues-root" data-can-add-related-issues="false" data-endpoint="/poppler/poppler/-/issues/950/links" data-help-path="/help/user/project/issues/related_issues" data-show-categorized-issues="false">
+</div>
+
+<div data-endpoint="/api/v4/projects/882/issues/950/related_merge_requests" data-project-namespace="poppler" data-project-path="poppler" id="js-related-merge-requests"></div>
+<div data-url="/poppler/poppler/-/issues/950/related_branches" id="related-branches">
+</div>
+</div>
+<div class="content-block emoji-block emoji-block-sticky">
+<div class="row gl-m-0 gl-justify-content-space-between">
+<div class="js-noteable-awards">
+<div class="awards js-awards-block" data-award-url="/poppler/poppler/-/issues/950/toggle_award_emoji">
+<button class="award-control btn disabled has-tooltip js-emoji-btn" data-title="" type="button">
+<gl-emoji title="thumbs up sign" data-name="thumbsup" data-unicode-version="6.0">👍</gl-emoji>
+<span class="award-control-text js-counter">
+0
+</span>
+</button>
+<button class="award-control btn disabled has-tooltip js-emoji-btn" data-title="" type="button">
+<gl-emoji title="thumbs down sign" data-name="thumbsdown" data-unicode-version="6.0">👎</gl-emoji>
+<span class="award-control-text js-counter">
+0
+</span>
+</button>
+
+</div>
+
+</div>
+<div class="new-branch-col">
+<div id="js-vue-sort-issue-discussions"></div>
+<div data-notes-filters="{&quot;Show all activity&quot;:0,&quot;Show comments only&quot;:1,&quot;Show history only&quot;:2}" id="js-vue-discussion-filter"></div>
+
+</div>
+</div>
+</div>
+<section class="issuable-discussion js-vue-notes-event">
+<div data-current-user-data="null" data-noteable-data="{&quot;id&quot;:31531,&quot;iid&quot;:950,&quot;description&quot;:&quot;Hello,\n\nwhen I open a PDF file that contains images with text in them (e.g. scanned pages), the rendering is a bit \&quot;ugly\&quot; on my lowdpi screen (24\&quot;, 1920x1200) at some commonly used range of zoom levels.\n\nI only see this with Okular and qpdfview, rendering in Evince, Atril, Zathura is fine.\n\nSTEPS TO REPRODUCE\n1. Open attached file \&quot;test.pdf\&quot; with Okular or qpdfview.\n2. Set zoom level to 75% (or up to ~100%).\n\nOBSERVED RESULT\n\nText looks \&quot;rather ugly\&quot;.\n(See also attached screenshot.)\n\nEXPECTED RESULT\n\nText looks \&quot;clearly readable\&quot;.\n(Compare screenshot from same document opened in Evince.)\n\nTo reproduce this in a clean environment, I was booting live images of Kubuntu 20.04 and KDE Neon (neon-unstable-20200726-1102.iso).\n\nThe original bug report on the KDE bugtracker is here:\nhttps://bugs.kde.org/show_bug.cgi?id=424817\n\nKind regards,\nJan\n\n[ Example pdf illustrating the bug (generated with &#39;img2pdf -o test.pdf test.png&#39;)](/uploads/7f094da749274142946538e9c4b9ea1f/test.pdf)\n\n[Source image file from which the test example was generated](/uploads/c53e719eed554a460e1f3e2875581878/test.png)\n\n[Screenshot rendering of test.pdf with Okular (zoom level 75%)](/uploads/4fa09de6762a7c1c0b87a08a34e1ff6e/Bildschirmfoto_20200809_191836.png)\n\n[Screenshot rendering of test.pdf with Evince (zoom level 75%)](/uploads/807c6671c317ad986b13d5d413fef451/Bildschirmfoto_20200809_191907.png)&quot;,&quot;title&quot;:&quot;Suboptimal rendering of images with text on lowdpi screens&quot;,&quot;time_estimate&quot;:0,&quot;total_time_spent&quot;:0,&quot;human_time_estimate&quot;:null,&quot;human_total_time_spent&quot;:null,&quot;state&quot;:&quot;opened&quot;,&quot;milestone_id&quot;:null,&quot;updated_by_id&quot;:310,&quot;created_at&quot;:&quot;2020-08-09T17:20:57.552Z&quot;,&quot;updated_at&quot;:&quot;2020-10-10T13:02:36.984Z&quot;,&quot;milestone&quot;:null,&quot;labels&quot;:[{&quot;id&quot;:584,&quot;title&quot;:&quot;Splash Backend&quot;,&quot;color&quot;:&quot;#428BCA&quot;,&quot;description&quot;:&quot;&quot;,&quot;group_id&quot;:null,&quot;project_id&quot;:882,&quot;template&quot;:false,&quot;text_color&quot;:&quot;#FFFFFF&quot;,&quot;created_at&quot;:&quot;2018-08-20T21:34:38.831Z&quot;,&quot;updated_at&quot;:&quot;2018-08-21T18:40:27.489Z&quot;}],&quot;lock_version&quot;:2,&quot;author_id&quot;:18639,&quot;confidential&quot;:false,&quot;discussion_locked&quot;:null,&quot;assignees&quot;:[],&quot;due_date&quot;:null,&quot;project_id&quot;:882,&quot;moved_to_id&quot;:null,&quot;duplicated_to_id&quot;:null,&quot;web_url&quot;:&quot;/poppler/poppler/-/issues/950&quot;,&quot;current_user&quot;:{&quot;can_create_note&quot;:false,&quot;can_update&quot;:false,&quot;can_award_emoji&quot;:false},&quot;create_note_path&quot;:&quot;/poppler/poppler/notes?target_id=31531\u0026target_type=issue&quot;,&quot;preview_note_path&quot;:&quot;/poppler/poppler/preview_markdown?target_id=950\u0026target_type=Issue&quot;,&quot;is_project_archived&quot;:false}" data-noteable-type="Issue" data-notes-data="{&quot;discussionsPath&quot;:&quot;/poppler/poppler/-/issues/950/discussions.json&quot;,&quot;registerPath&quot;:&quot;/users/sign_in?redirect_to_referer=yes#register-pane&quot;,&quot;newSessionPath&quot;:&quot;/users/sign_in?redirect_to_referer=yes&quot;,&quot;markdownDocsPath&quot;:&quot;/help/user/markdown&quot;,&quot;quickActionsDocsPath&quot;:&quot;/help/user/project/quick_actions&quot;,&quot;closePath&quot;:&quot;/poppler/poppler/-/issues/950.json?issue%5Bstate_event%5D=close&quot;,&quot;reopenPath&quot;:&quot;/poppler/poppler/-/issues/950.json?issue%5Bstate_event%5D=reopen&quot;,&quot;notesPath&quot;:&quot;/poppler/poppler/noteable/issue/31531/notes&quot;,&quot;prerenderedNotesCount&quot;:10,&quot;lastFetchedAt&quot;:1603374699000000}" data-target-type="issue" id="js-vue-notes"></div>
+</section>
+
+</div>
+<aside aria-live="polite" class="js-issuable-sidebar js-right-sidebar right-sidebar right-sidebar-expanded">
+<div class="issuable-sidebar">
+<div class="block issuable-sidebar-header">
+<a aria-label="Toggle sidebar" class="gutter-toggle float-right js-sidebar-toggle has-tooltip" data-boundary="viewport" data-container="body" data-placement="left" href="#" role="button" title="Collapse sidebar">
+<i aria-hidden="true" data-hidden="true" aria-hidden="true" class="fa fa-angle-double-right"></i>
+</a>
+</div>
+<form class="issuable-context-form inline-update js-issuable-update" action="/poppler/poppler/-/issues/950.json" accept-charset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="&#x2713;" /><div class="block assignee qa-assignee-block">
+<div data-field="issue" id="js-vue-sidebar-assignees">
+<div class="title hide-collapsed">
+Assignee
+<span class="gl-spinner gl-spinner-orange gl-spinner-sm gl-vertical-align-text-bottom" aria-label="Loading"></span>
+</div>
+</div>
+<div class="selectbox hide-collapsed">
+<input type="hidden" name="issue[assignee_ids][]" value="0" />
+<div class="dropdown "><button class="dropdown-menu-toggle js-user-search js-author-search js-multiselect js-save-user-data" type="button" data-current-user="true" data-iid="950" data-issuable-type="issue" data-project-id="882" data-author-id="18639" data-field-name="issue[assignee_ids][]" data-issue-update="/poppler/poppler/-/issues/950.json" data-ability-name="issue" data-null-user="true" data-display="static" data-multi-select="true" data-dropdown-title="Select assignee" data-dropdown-header="Assignee" data-max-select="1" data-toggle="dropdown"><span class="dropdown-toggle-text ">Select assignee</span><i aria-hidden="true" data-hidden="true" class="fa fa-chevron-down"></i></button><div class="dropdown-menu dropdown-select dropdown-menu-user dropdown-menu-selectable dropdown-menu-author"><div class="dropdown-title gl-display-flex"><span class="gl-ml-auto">Assign to</span><button class="dropdown-title-button dropdown-menu-close gl-ml-auto" aria-label="Close" type="button"><svg class="s16 dropdown-menu-close-icon" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></button></div><div class="dropdown-input"><input type="search" id="" class="dropdown-input-field qa-dropdown-input-field" placeholder="Search users" autocomplete="off" /><i aria-hidden="true" data-hidden="true" class="fa fa-search dropdown-input-search"></i><svg class="s16 dropdown-input-clear js-dropdown-input-clear" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></div><div class="dropdown-content "></div><div class="dropdown-loading"><i aria-hidden="true" data-hidden="true" class="fa fa-spinner fa-spin"></i></div></div></div>
+</div>
+
+</div>
+
+<div class="block milestone" data-qa-selector="milestone_block">
+<div class="sidebar-collapsed-icon has-tooltip" data-boundary="viewport" data-container="body" data-html="true" data-placement="left" title="Milestone">
+<svg class="s16" data-testid="clock-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#clock"></use></svg>
+<span class="milestone-title collapse-truncated-title">
+None
+</span>
+</div>
+<div class="title hide-collapsed">
+Milestone
+<span class="gl-spinner gl-spinner-orange gl-spinner-sm gl-vertical-align-text-bottom hidden block-loading" aria-label="Loading"></span>
+</div>
+<div class="value hide-collapsed">
+<span class="no-value">
+None
+</span>
+</div>
+<div class="selectbox hide-collapsed">
+<input type="hidden" name="issue[milestone_id]" />
+<div class="dropdown "><button class="dropdown-menu-toggle js-milestone-select js-extra-options" type="button" data-show-no="true" data-field-name="issue[milestone_id]" data-project-id="882" data-issuable-id="31531" data-ability-name="issue" data-issue-update="/poppler/poppler/-/issues/950.json" data-use-id="true" data-default-no="true" data-null-default="true" data-display="static" data-toggle="dropdown"><span class="dropdown-toggle-text ">Milestone</span><i aria-hidden="true" data-hidden="true" class="fa fa-chevron-down"></i></button><div class="dropdown-menu dropdown-select dropdown-menu-selectable"><div class="dropdown-title gl-display-flex"><span class="gl-ml-auto">Assign milestone</span><button class="dropdown-title-button dropdown-menu-close gl-ml-auto" aria-label="Close" type="button"><svg class="s16 dropdown-menu-close-icon" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></button></div><div class="dropdown-input"><input type="search" id="" class="dropdown-input-field qa-dropdown-input-field" placeholder="Search milestones" autocomplete="off" /><i aria-hidden="true" data-hidden="true" class="fa fa-search dropdown-input-search"></i><svg class="s16 dropdown-input-clear js-dropdown-input-clear" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></div><div class="dropdown-content "></div><div class="dropdown-loading"><i aria-hidden="true" data-hidden="true" class="fa fa-spinner fa-spin"></i></div></div></div>
+</div>
+
+</div>
+<div class="block" id="issuable-time-tracker">
+<!-- / Fallback while content is loading -->
+<div class="title hide-collapsed">
+Time tracking
+<span class="gl-spinner gl-spinner-orange gl-spinner-sm" aria-label="Loading"></span>
+</div>
+</div>
+<div class="block due_date">
+<div class="sidebar-collapsed-icon has-tooltip" data-boundary="viewport" data-container="body" data-html="true" data-placement="left" title="Due date">
+<svg class="s16" data-testid="calendar-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#calendar"></use></svg>
+<span class="js-due-date-sidebar-value">
+None
+</span>
+</div>
+<div class="title hide-collapsed">
+Due date
+<span class="gl-spinner gl-spinner-orange gl-spinner-sm gl-vertical-align-text-bottom hidden block-loading" aria-label="Loading"></span>
+</div>
+<div class="value hide-collapsed">
+<span class="value-content">
+<span class="no-value">
+None
+</span>
+</span>
+</div>
+</div>
+<div class="block labels">
+<div class="sidebar-collapsed-icon js-sidebar-labels-tooltip" data-boundary="viewport" data-container="body" data-placement="left" title="Splash Backend">
+<svg class="s16" data-testid="labels-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#labels"></use></svg>
+<span>
+1
+</span>
+</div>
+<div class="title hide-collapsed">
+Labels
+<span class="gl-spinner gl-spinner-orange gl-spinner-sm gl-vertical-align-text-bottom hidden block-loading" aria-label="Loading"></span>
+</div>
+<div class="dont-hide has-labels hide-collapsed issuable-show-labels value" data-qa-selector="labels_block">
+<span class="gl-label"><a class="gl-link gl-label-link" data-qa-selector="label" data-qa-label-name="Splash Backend" href="/poppler/poppler/-/issues?label_name%5B%5D=Splash+Backend"><span
+  class="gl-label-text gl-label-text-light"
+  data-container="body"
+  data-html="true"
+  style="background-color: #428BCA"
+>Splash Backend</span></a></span>
+</div>
+<div class="selectbox hide-collapsed">
+<input type="hidden" name="issue[label_names][]" value="584" />
+<div class="dropdown">
+<button class="dropdown-menu-toggle js-label-select js-multiselect js-label-sidebar-dropdown" data-ability-name="issue" data-default-label="Labels" data-display="static" data-field-name="issue[label_names][]" data-issue-update="/poppler/poppler/-/issues/950.json" data-labels="/poppler/poppler/-/labels.json?include_ancestor_groups=true" data-namespace-path="poppler" data-project-path="poppler" data-show-any="true" data-show-no="true" data-toggle="dropdown" type="button">
+<span class="dropdown-toggle-text">
+Splash Backend
+</span>
+<i aria-hidden="true" data-hidden="true" aria-hidden="true" class="fa fa-chevron-down"></i>
+</button>
+<div class="dropdown-menu dropdown-select dropdown-menu-paging qa-dropdown-menu-labels dropdown-menu-labels dropdown-menu-selectable dropdown-extended-height">
+<div class="dropdown-page-one">
+<div class="dropdown-title gl-display-flex"><span class="gl-ml-auto">Assign labels</span><button class="dropdown-title-button dropdown-menu-close gl-ml-auto" aria-label="Close" type="button"><svg class="s16 dropdown-menu-close-icon" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></button></div>
+<div class="dropdown-input"><input type="search" id="" class="dropdown-input-field qa-dropdown-input-field" placeholder="Search" autocomplete="off" /><i aria-hidden="true" data-hidden="true" class="fa fa-search dropdown-input-search"></i><svg class="s16 dropdown-input-clear js-dropdown-input-clear" data-testid="close-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#close"></use></svg></div>
+<div class="dropdown-content"></div>
+<div class="dropdown-footer"><ul class="dropdown-footer-list">
+<li>
+<a data-is-link="true" href="/poppler/poppler/-/labels">View project labels
+</a></li>
+</ul>
+</div><div class="dropdown-loading"><i aria-hidden="true" data-hidden="true" class="fa fa-spinner fa-spin"></i></div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<script id="js-confidential-issue-data" type="application/json">{"is_confidential":false,"is_editable":null}</script>
+<div id="js-confidential-entry-point"></div>
+<script id="js-lock-issue-data" type="application/json">{"is_locked":false,"is_editable":null}</script>
+<div id="js-lock-entry-point"></div>
+<div class="js-sidebar-participants-entry-point"></div>
+<div class="block with-sub-blocks">
+<div class="project-reference sub-block">
+<div class="sidebar-collapsed-icon dont-change-state">
+<button class="btn btn-clipboard btn-transparent" data-toggle="tooltip" data-placement="left" data-container="body" data-title="Copy reference" data-boundary="viewport" data-clipboard-text="poppler/poppler#950" type="button" title="Copy reference" aria-label="Copy reference"><svg class="s16" data-testid="copy-to-clipboard-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#copy-to-clipboard"></use></svg></button>
+</div>
+<div class="cross-project-reference hide-collapsed">
+<span>
+Reference:
+<cite title="poppler/poppler#950">
+poppler/poppler#950
+</cite>
+</span>
+<button class="btn btn-clipboard btn-transparent" data-toggle="tooltip" data-placement="left" data-container="body" data-title="Copy reference" data-boundary="viewport" data-clipboard-text="poppler/poppler#950" type="button" title="Copy reference" aria-label="Copy reference"><svg class="s16" data-testid="copy-to-clipboard-icon"><use xlink:href="/assets/icons-795a2ef2fd636a0538bbef3b8d2787dd90927b42d7617fdda8620930016b333d.svg#copy-to-clipboard"></use></svg></button>
+</div>
+</div>
+</div>
+</form><script class="js-sidebar-options" type="application/json">{"endpoint":"/poppler/poppler/-/issues/950.json?serializer=sidebar_extras","toggleSubscriptionEndpoint":"/poppler/poppler/-/issues/950/toggle_subscription","moveIssueEndpoint":"/poppler/poppler/-/issues/950/move","projectsAutocompleteEndpoint":"/-/autocomplete/projects?project_id=882","editable":null,"currentUser":null,"rootPath":"/","fullPath":"poppler/poppler","iid":950,"severity":"unknown","timeTrackingLimitToHours":false}</script>
+</div>
+</aside>
+
+
+</div>
+</div>
+</div>
+</div>
+
+
+<script>
+//<![CDATA[
+if ('loading' in HTMLImageElement.prototype) {
+  document.querySelectorAll('img.lazy').forEach(img => {
+    img.loading = 'lazy';
+    let imgUrl = img.dataset.src;
+    // Only adding width + height for avatars for now
+    if (imgUrl.indexOf('/avatar/') > -1 && imgUrl.indexOf('?') === -1) {
+      const targetWidth = img.getAttribute('width') || img.width;
+      imgUrl += `?width=${targetWidth}`;
+    }
+    img.src = imgUrl;
+    img.removeAttribute('data-src');
+    img.classList.remove('lazy');
+    img.classList.add('js-lazy-loaded', 'qa-js-lazy-loaded');
+  });
+}
+
+//]]>
+</script>
+
+</body>
+</html>
+

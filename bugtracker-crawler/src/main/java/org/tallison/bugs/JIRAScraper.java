@@ -20,7 +20,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.tika.io.FilenameUtils;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Basic scraper to grab attachments from Apache's JIRA.
@@ -39,41 +45,62 @@ import java.util.List;
  * TODO: error handling/logging etc...
  */
 public class JIRAScraper {
+
+    Matcher urlMatcher = Pattern.compile("\\A(.*)\\/projects\\/(.*)\\Z").matcher("");
     //https://issues.apache.org/jira/rest/api/2/search?jql=project=PDFBOX
     // &fields=key,issuetype,status,summary,attachment
 
-    private static String URL_BASE = "https://ec.europa.eu/cefdigital/tracker";//https://issues.apache.org/jira";
+    private static String URL_BASE = "https://issues.apache.org/jira";//https://ec.europa.eu/cefdigital/tracker";//https://issues.apache.org/jira";
     private static String REST_QUERY_BASE = "/rest/api/2/search?jql=project=";
     private static String FIELDS = "&fields=key,issuetype,status,summary,attachment";
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     int maxResults = 200;
-    private String project;
-    private Path outputDir;
-
-    public JIRAScraper(String project, Path outputDir) {
-        this.project = project;
-        this.outputDir = outputDir;
-    }
 
     public static void main(String[] args) throws Exception {
-        Path outputDir = Paths.get(args[1]);
-        Files.createDirectories(outputDir);
-        JIRAScraper scraper = new JIRAScraper(args[0], outputDir);
-        scraper.execute();
+        Path jiras = Paths.get(args[0]);
+        Path outputRoot = Paths.get(args[1]);
+        JIRAScraper scraper = new JIRAScraper();
+        if (Files.isRegularFile(jiras)) {
+            try (BufferedReader reader = Files.newBufferedReader(jiras, StandardCharsets.UTF_8)) {
+                String line = reader.readLine();
+                while (line != null) {
+                    if (! line.startsWith("#")) {
+                        scraper.execute(line.trim(), outputRoot);
+                    }
+                    line = reader.readLine();
+                }
+            }
+        } else {
+            scraper.execute(args[0], outputRoot);
+        }
     }
 
-    private void execute() throws IOException, ClientException {
+    private void execute(String projectUrl, Path outputRoot) throws IOException, ClientException {
+        urlMatcher.reset(projectUrl);
+        String baseUrl = "";
+        String project = "";
+        if (urlMatcher.find()) {
+            baseUrl = urlMatcher.group(1);
+            project = urlMatcher.group(2);
+        } else {
+            System.err.println("Couldn't find \"/projects\" in url: "+projectUrl);
+            return;
+        }
+        Path outputDir = outputRoot.resolve("docs/"+project);
+        if (! Files.isDirectory(outputDir)) {
+            Files.createDirectories(outputDir);
+        }
         int start = 0;
         int total = -1;
         int issueCount = 0;
         while (total < 0 || start < total) {
-            String url = URL_BASE + REST_QUERY_BASE + project
+            String url = baseUrl + REST_QUERY_BASE + project
                     //+"%20AND%20KEY=PDFBOX-1780"
                     + FIELDS + "&startAt=" + start + "&maxResults=" + maxResults;
 
             byte[] jsonBytes = HttpUtils.get(url);
-            writeJson(start, jsonBytes);
+            writeJson(outputRoot, project, start, jsonBytes);
             String json = new String(jsonBytes, StandardCharsets.UTF_8);
             JsonElement el = JsonParser.parseString(json);
             JsonObject root = (JsonObject) el;
@@ -100,11 +127,11 @@ public class JIRAScraper {
         //System.out.println(html);
     }
 
-    private void writeJson(int start, byte[] jsonBytes) throws IOException {
-        if (! Files.isDirectory(outputDir.resolve("metadata"))) {
-            Files.createDirectories(outputDir.resolve("metadata"));
+    private void writeJson(Path outputRoot, String project, int start, byte[] jsonBytes) throws IOException {
+        if (! Files.isDirectory(outputRoot.resolve("metadata/"+project))) {
+            Files.createDirectories(outputRoot.resolve("metadata/"+project));
         }
-        Path targ = outputDir.resolve("metadata/"+project+"-"+start+".json");
+        Path targ = outputRoot.resolve("metadata/"+project+"/"+project+"-"+start+".json");
         Files.write(targ, jsonBytes);
     }
 

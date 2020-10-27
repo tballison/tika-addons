@@ -31,6 +31,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -66,6 +67,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         -p POI -u https://bz.apache.org/bugzilla/ -m application -o /docs/poi -d POI -s 10
         -p LIBRE_OFFICE -u https://bugs.documentfoundation.org/ -m application -o /Users/allison/Desktop/libre -s 10
         -p GHOSTSCRIPT -u https://bugs.ghostscript.com/ -m application -o /Users/allison/Desktop/ghostscript -s 1000
+        //this api has been shutdown
+        //-p poppler -u https://bugs.freedesktop.org/ -m application -o /home/tallison/bugzilla -s 1000
      */
 
     private static String LIMIT = "&limit="; //how many results to bring back
@@ -79,10 +82,13 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             "&o1=anywordssubstr" + //require any word to match
             "&f1=attachments.mimetype&v1="; //key words to match
 
+    //if you want any issue with any type of attachment
+    //&f1=attach_data.thedata&o1=isnotempty
+
 
     static Options OPTIONS = new Options()
                 .addOption("u", "baseUrl", true, "base url")
-                .addOption("o", "outputDir", true, "directory to dump the data")
+                .addOption("o", "outputRoot", true, "directory to dump the data")
                 .addOption("p", "project", true, "project name for the issue number labels 'POI' for POI-32132")
                 .addOption("d", "product", true,
                         "optional specification of a product with a project, like POI")
@@ -92,7 +98,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
                 .addOption("i", "indexOnly", false,
                         "only grab the index/paging results, not the actual issues");
 
-    int pageResultSize = 1000;
+    int pageResultSize = 100;
     String restCGI = "rest.cgi/";
 
     private DateTimeFormatter formatter =
@@ -100,18 +106,20 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
 
     private final String project;
     private final String baseUrl;
-    private final Path rootDir;
+    private final Path metadataDir;
+    private final Path docsDir;
     private final String mimeTypeStrings;
     private final String product;//can be empty string
     private final String apiKey;//can be empty string
     private boolean indexOnly = false;
 
     public BugzillaScraper(String project, String baseUrl,
-                           String mimeTypeStrings, Path path,
+                           String mimeTypeStrings, Path rootDir,
                            String apiKey, String product) {
         this.project = project;
         this.baseUrl = baseUrl;
-        this.rootDir = path;
+        this.metadataDir = rootDir.resolve("metadata/"+project);
+        this.docsDir = rootDir.resolve("docs/"+project);
         this.mimeTypeStrings = mimeTypeStrings;
         if (StringUtils.isBlank(apiKey)) {
             this.apiKey = "";
@@ -122,6 +130,28 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     public static void main(String[] args) throws Exception {
+        if (Files.isRegularFile(Paths.get(args[0]))) {
+            processFile(Paths.get(args[0]));
+        } else {
+            processCommandline(args);
+        }
+    }
+
+    private static void processFile(Path argFile) throws Exception {
+        try (BufferedReader reader = Files.newBufferedReader(argFile, StandardCharsets.UTF_8)) {
+            String line = reader.readLine();
+            while (line != null) {
+                //This is really bad practice!
+                if (! line.startsWith("#")) {
+                    String[] args = line.split("\\s+");
+                    processCommandline(args);
+                }
+                line = reader.readLine();
+            }
+        }
+    }
+
+    private static void processCommandline(String[] args) throws Exception {
         DefaultParser defaultCLIParser = new DefaultParser();
         CommandLine commandLine = null;
         try {
@@ -136,7 +166,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         if (! baseUrl.endsWith("/")) {
             baseUrl += "/";
         }
-        String mimeTypeStrings = URLEncoder.encode(commandLine.getOptionValue("m"));
+        String mimeTypeStrings = commandLine.getOptionValue("m");//URLEncoder.encode(commandLine.getOptionValue("m"));
         Path outputDir = Paths.get(commandLine.getOptionValue("o"));
         String apiKey = "";
         if (commandLine.hasOption("k")) {
@@ -156,11 +186,13 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
         }
         try {
             scraper.execute();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             t.printStackTrace();
             throw t;
         }
+
     }
+
 
     private void setIndexOnly(boolean indexOnly) {
         this.indexOnly = indexOnly;
@@ -171,8 +203,8 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private void execute() throws IOException, ClientException {
-        Files.createDirectories(rootDir);
-        Files.createDirectories(rootDir.resolve("metadata"));
+        Files.createDirectories(docsDir);
+        Files.createDirectories(metadataDir);
 
         int offset = 0;
         while (true) {
@@ -201,12 +233,13 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private List<String> getIssueIds(int offset, int pageSize) throws IOException, ClientException {
-        Path resultsPath = rootDir.resolve("metadata/"+offset+".json.gz");
+        Path resultsPath = metadataDir.resolve(offset+".json.gz");
         byte[] bytes = null;
         if (Files.isRegularFile(resultsPath)) {
             bytes = gunzip(resultsPath);
         } else {
             String url = getIssueIdUrl(offset, pageSize);
+            System.out.println("going to get issues: "+url);
             if (offset == 0) {
                 try {
                     bytes = HttpUtils.get(url);
@@ -222,6 +255,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             gz(resultsPath, bytes);
         }
         String json = new String(bytes, StandardCharsets.UTF_8);
+        System.out.println(json);
         JsonElement root = JsonParser.parseString(json);
         if (! root.isJsonObject()) {
             return Collections.EMPTY_LIST;
@@ -246,6 +280,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private String getIssueIdUrl(int offset, int pageSize) {
+
         String url = baseUrl+restCGI+generalQueryByURL+mimeTypeStrings +
                 LIMIT+pageSize+OFFSET+offset;
 
@@ -260,7 +295,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private boolean processIssue(String issueId) throws IOException, ClientException {
-        Path jsonMetadataPath = rootDir.resolve("metadata/"+project+"-" + issueId + ".json.gz");
+        Path jsonMetadataPath = metadataDir.resolve(project+"-" + issueId + ".json.gz");
         boolean networkCall = false;
         byte[] jsonBytes = null;
         System.err.println("going to get: "+jsonMetadataPath);
@@ -350,7 +385,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
 
         Attachment attachment = new Attachment("", fileName, lastModified);
 
-        Path target = ScraperUtils.getInitialTarget(rootDir, attachment,
+        Path target = ScraperUtils.getInitialTarget(docsDir, attachment,
                 project+"-"+issueId, i);
         if (Files.isRegularFile(target)) {
             return;
@@ -360,7 +395,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
             byte[] bytes = Base64.getDecoder().decode(data);
             try {
                 Files.copy(new ByteArrayInputStream(bytes), target, StandardCopyOption.REPLACE_EXISTING);
-                ScraperUtils.writeAttachment(target, rootDir, project + "-" + issueId, i, lastModified);
+                ScraperUtils.writeAttachment(target, docsDir, project + "-" + issueId, i, lastModified);
             } catch (IOException e) {
                 e.printStackTrace();
             }
