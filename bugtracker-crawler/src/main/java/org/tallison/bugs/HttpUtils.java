@@ -46,6 +46,7 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
+import org.apache.tika.utils.ProcessUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -259,10 +260,11 @@ public class HttpUtils {
     }
 
     public static void wget(String url, Path outputFile) throws InterruptedException, ClientException, IOException {
+
         String[] args = new String[]{ "wget", url,
                 "--timeout="+(long)((double)HARD_TIMEOUT_MILLIS/(double)1000),//timeout in seconds
                 "--tries="+MAX_WGET_RETRIES,
-                "-O", outputFile.toAbsolutePath().toString()};
+                "-O", ProcessUtils.escapeCommandLine(outputFile.toAbsolutePath().toString())};
 
         ProcessBuilder builder = new ProcessBuilder(args);
         builder.inheritIO();

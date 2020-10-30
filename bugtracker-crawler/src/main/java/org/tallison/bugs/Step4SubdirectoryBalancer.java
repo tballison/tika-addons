@@ -17,27 +17,44 @@
 package org.tallison.bugs;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SubdirectoryMover {
+/**
+ * This processes a directory of projects.  It will balance issues into subdirectories
+ * within each project directory so that there are no more than maxPerDirectory files
+ * in each subdirectory.
+ */
+public class Step4SubdirectoryBalancer {
 
-    static int maxPerDirectory = 10000;
+    static int MAX_PER_DIRECTORY = 10;
 
     public static void main(String[] args) throws Exception {
+        Path root = Paths.get(args[0]);
+        boolean dryRun = (args.length > 1 && 
+                args[1].toLowerCase(Locale.US).contains("dryrun")) 
+                ? true : false;
+        
+        for (File project : root.toFile().listFiles()) {
+            processProject(project.toPath(), dryRun);
+        }
+    }
+    
+    public static void processProject(Path projectDir, boolean dryRun) throws IOException {
         Matcher m = Pattern.compile("(?i)[-_a-z]+-(\\d+)").matcher("");
-        Path dir = Paths.get(args[0]);
         Map<Integer, List<Path>> filesByIssue = new TreeMap<>();
         int totalFiles = 0;
-        for (File f : dir.toFile().listFiles()) {
+        for (File f : projectDir.toFile().listFiles()) {
             String fName = f.getName();
 
             int issueId = -1;
@@ -54,7 +71,7 @@ public class SubdirectoryMover {
             }
             totalFiles++;
         }
-        if (totalFiles < maxPerDirectory) {
+        if (totalFiles < MAX_PER_DIRECTORY) {
             return;
         }
 
@@ -68,7 +85,7 @@ public class SubdirectoryMover {
                 lastIssue = issueid;
             }
             int paths = filesByIssue.get(issueid).size();
-            if (currBin+paths > maxPerDirectory) {
+            if (currBin+paths > MAX_PER_DIRECTORY) {
                 issueRanges.put(currStart, lastIssue);
                 currBin = paths;
                 currStart = issueid;
@@ -81,7 +98,9 @@ public class SubdirectoryMover {
         for (int start : issueRanges.keySet()) {
             Path parent = filesByIssue.get(start).get(0).getParent();
             Path subdir = parent.resolve(start +"-"+issueRanges.get(start));
-            Files.createDirectories(subdir);
+            if (! dryRun) {
+                Files.createDirectories(subdir);
+            }
             int cnt = 0;
             int end = issueRanges.get(start);
             for (int i = start; i <= end; i++) {
@@ -92,7 +111,9 @@ public class SubdirectoryMover {
                         Path targ = subdir.resolve(file.getFileName());
                         System.out.println("moving "+file.toAbsolutePath()
                                 +"->"+targ.toAbsolutePath());
-                        Files.move(file, targ, StandardCopyOption.ATOMIC_MOVE);
+                        if (!dryRun) {
+                            Files.move(file, targ, StandardCopyOption.ATOMIC_MOVE);
+                        }
                     }
                 }
             }

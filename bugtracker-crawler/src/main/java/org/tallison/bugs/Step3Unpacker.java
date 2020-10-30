@@ -44,9 +44,10 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.HashSet;
 
+import java.util.Locale;
 import java.util.Set;
 //to delete attachments, try: find -E . -regex '.*-[0-9]+.*-[0-9]+.*-[0-9]+.*' -delete
-class Unpacker {
+class Step3Unpacker {
 
     Parser packageParser = new AutoDetectParser(new PackageParser(), new RarParser());
 
@@ -70,24 +71,25 @@ class Unpacker {
     }
     public static void main(String[] args) throws Exception {
         Path dir = Paths.get(args[0]);
-        Unpacker unpacker = new Unpacker();
-        unpacker.processDir(dir);
+        boolean dryrun = (args.length > 1 &&
+                args[1].toLowerCase(Locale.US).contains("dryrun"))
+                ? true : false;
+        Step3Unpacker unpacker = new Step3Unpacker();
+        unpacker.processDir(dir, dryrun);
     }
 
-    private void processDir(Path dir) {
+    private void processDir(Path dir, boolean dryrun) {
         for (File f : dir.toFile().listFiles()) {
             if (f.isDirectory()) {
-                processDir(f.toPath());
+                processDir(f.toPath(), dryrun);
             } else {
-                processFile(f.toPath());
+                processFile(f.toPath(), dryrun);
             }
         }
     }
 
-    private void processFile(Path file) {
-        if (file.getFileName().toString().contains("1430942-0.7z")) {
-            return;
-        }
+    private void processFile(Path file, boolean dryrun) {
+
         //already unpacked, return
         if (file.getFileName().toString().contains("-\\d+.*?-\\d+.*-\\d+")) {
             System.err.println("skipping: "+file);
@@ -97,7 +99,7 @@ class Unpacker {
         System.out.println("about to process: "+file);
         if (COMPRESSED_FORMAT_EXTS.contains(ext)) {
             try {
-                decompress(file);
+                decompress(file, dryrun);
             } catch (SecurityException e) {
                 throw e;
             } catch (Exception e) {
@@ -125,7 +127,7 @@ class Unpacker {
         }
     }
 
-    private void decompress(Path file) throws IOException {
+    private void decompress(Path file, boolean dryrun) throws IOException {
         CompressorStreamFactory factory = new CompressorStreamFactory();
 
         try (InputStream is = factory
@@ -135,7 +137,7 @@ class Unpacker {
             String extension = ScraperUtils.getExtension(tmp);
             //this handles the "tar" in tgz
             if (extension.equals(".tar") || extension.equals(".gtar")) {
-                handleTar(file, tmp);
+                handleTar(file, tmp, dryrun);
                 return;
             }
 
@@ -144,15 +146,19 @@ class Unpacker {
                     0
                     + extension);
             System.out.println("extracting "+file + " -> "+targ);
-            Files.move(tmp, targ);
-            Files.setLastModifiedTime(targ,Files.getLastModifiedTime(file));
+            if (dryrun) {
+                Files.delete(tmp);
+            } else {
+                Files.move(tmp, targ);
+                Files.setLastModifiedTime(targ, Files.getLastModifiedTime(file));
+            }
 
         } catch (CompressorException e) {
             throw new IOExceptionWithCause(e);
         }
     }
 
-    private void handleTar(Path rootFile, Path tmpTar) throws IOException {
+    private void handleTar(Path rootFile, Path tmpTar, boolean dryrun) throws IOException {
         try (InputStream is = Files.newInputStream(tmpTar)) {
             try (TarArchiveInputStream tar = new TarArchiveInputStream(is)) {
                 ArchiveEntry e = tar.getNextEntry();
@@ -170,10 +176,13 @@ class Unpacker {
                         return;
                     }
                     System.out.println("extracting "+rootFile + " -> "+targ);
-
-                    Files.move(tmp, targ);
-                    Files.setLastModifiedTime(targ,
-                            FileTime.from(e.getLastModifiedDate().toInstant()));
+                    if (dryrun) {
+                        Files.delete(tmp);
+                    } else {
+                        Files.move(tmp, targ);
+                        Files.setLastModifiedTime(targ,
+                                FileTime.from(e.getLastModifiedDate().toInstant()));
+                    }
                     e = tar.getNextEntry();
                 }
             }

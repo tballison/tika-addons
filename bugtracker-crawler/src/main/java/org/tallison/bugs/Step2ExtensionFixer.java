@@ -16,10 +16,12 @@
  */
 package org.tallison.bugs;
 
+import org.apache.commons.exec.util.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.tika.mime.MediaType;
+import org.tallison.bugs.utils.MapUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,7 +43,7 @@ import java.util.Set;
  * Runs detection on a file and will change its extension
  * if the extension appears to be wrong according to Tika's detection.
  */
-public class ExtensionFixer {
+public class Step2ExtensionFixer {
     static Set<MediaType> UNRELIABLE_MEDIA_TYPES = new HashSet<>();
     static Set<String> DONT_CHANGE_ORIG_EXT = new HashSet<>();
     static Map<String, String> CUSTOM_TIKA_MAPPINGS = new HashMap<>();
@@ -127,10 +129,10 @@ public class ExtensionFixer {
         Map<String, TokenCounts> fromTo = new HashMap<>();
         process(dir, fromTo, dryRun);
 
-        for (String from : fromTo.keySet()) {
-            TokenCounts tk = fromTo.get(from);
-            for (Map.Entry<String, MutableInt> e : tk.tokens.entrySet()) {
-                System.out.println(from+"\t->\t"+e.getKey()+"\t"+e.getValue().intValue());
+        for (Map.Entry<String, TokenCounts> from : ((Map<String, TokenCounts>)MapUtil.sortByDescendingValue(fromTo)).entrySet()) {
+            TokenCounts tk = from.getValue();
+            for (Map.Entry<String, MutableInt> e : MapUtil.sortByDescendingValue(tk.tokens).entrySet()) {
+                System.out.println(from.getKey()+"\t->\t"+e.getKey()+"\t"+e.getValue().intValue());
             }
         }
     }

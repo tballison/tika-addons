@@ -16,7 +16,7 @@
  */
 import org.junit.Ignore;
 import org.junit.Test;
-import org.tallison.bugs.ExtensionFixer;
+import org.tallison.bugs.Step2ExtensionFixer;
 
 public class ExtensionFixerTest {
 
@@ -26,6 +26,6 @@ public class ExtensionFixerTest {
         String[] args = new String[] {
                 "/home/tallison/data/docs/"
         };
-        ExtensionFixer.main(args);
+        Step2ExtensionFixer.main(args);
     }
 }
