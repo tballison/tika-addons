@@ -7,9 +7,11 @@ https://github.com/barryvdh/laravel-snappy
 https://github.com/pdfminer/pdfminer.six
 https://github.com/diegomura/react-pdf
 https://github.com/foliojs/pdfkit
-https://github.com/barteks/cAndroidPdfViewer
+https://github.com/barteksc/AndroidPdfViewer
 https://github.com/tabulapdf/tabula
+https://github.com/tabulapdf/tabula-java
 https://github.com/libvips/libvips
 https://github.com/prawnpdf/prawn
 https://github.com/axa-group/Parsr
 https://github.com/pdfcpu/pdfcpu
+https://github.com/pikepdf/pikepdf

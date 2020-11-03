@@ -78,10 +78,13 @@ public class GithubScraper {
             try (BufferedReader reader = Files.newBufferedReader(Paths.get(fileOrUrl), StandardCharsets.UTF_8)) {
                 String baseUrl = reader.readLine();
                 while (baseUrl != null) {
-                    GithubScraper scraper = new GithubScraper();
-                    System.out.println("going to get "+baseUrl);
-                    scraper.scrape(root, baseUrl);
+                    if (! baseUrl.startsWith("#")) {
+                        GithubScraper scraper = new GithubScraper();
+                        System.out.println("going to get " + baseUrl);
+                        scraper.scrape(root, baseUrl);
+                    }
                     baseUrl = reader.readLine();
+
                 }
             }
         } else {
@@ -246,7 +249,6 @@ public class GithubScraper {
             try {
                 System.out.println("going to get "+project + ": "+issueId);
                 htmlBytes = HttpUtils.get(httpClient, url);
-                Thread.sleep(1000);
             } catch (Exception e) {
                 if (e instanceof ClientException) {
                     System.err.println("problem with "+ url +
@@ -255,6 +257,12 @@ public class GithubScraper {
                     e.printStackTrace();
                 }
                 return null;
+            } finally {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    //
+                }
             }
             try {
                 Files.write(htmlFile, htmlBytes);

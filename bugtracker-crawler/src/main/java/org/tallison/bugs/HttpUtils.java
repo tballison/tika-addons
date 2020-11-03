@@ -68,6 +68,9 @@ public class HttpUtils {
     static long HARD_TIMEOUT_MILLIS = 2*60*1000;
     static int MAX_WGET_RETRIES = 2;
 
+    static long MAX_THROTTLE_ATTEMPTS = 4;
+    static long THROTTLE_SLEEP_INCREMENTS_MILLIS = 120000;
+
     /**
      *
      * @param url url-encoded url -- this does not encode the url!
@@ -207,8 +210,19 @@ public class HttpUtils {
 
         HttpResponse httpResponse = null;
         try {
-            httpResponse = httpClient.execute(target, httpGet);
 
+            httpResponse = httpClient.execute(target, httpGet);
+            int throttleAttempts = 0;
+            while (httpResponse.getStatusLine().getStatusCode() == 429 && throttleAttempts < MAX_THROTTLE_ATTEMPTS) {
+                long throttleAmount = (++throttleAttempts) * THROTTLE_SLEEP_INCREMENTS_MILLIS;
+                System.err.println("received 429; must be throttling; sleeping for "+throttleAmount+" ms.");
+                try {
+                    Thread.sleep(throttleAmount);
+                } catch (InterruptedException e) {
+
+                }
+                httpResponse = httpClient.execute(target, httpGet);
+            }
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 String msg = new String(EntityUtils.toByteArray(
                         httpResponse.getEntity()), StandardCharsets.UTF_8);
