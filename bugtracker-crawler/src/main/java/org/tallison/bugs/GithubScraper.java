@@ -53,6 +53,12 @@ public class GithubScraper {
      * TODO see SUMATRA-1343 --need to add links to github repo files;
      * can't just block all of github.com
      */
+
+    /**
+     * Beware: github does not like multithreaded requests.  It'll kick back a 429
+     * if you request too much data too quickly.  No point in multithreading the requests.
+     * Don't even run in multiple processes if running against _the_ github.
+     */
     static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*)\"?>");
     static Pattern FILES_PATTERN = Pattern.compile("\\/files\\/\\d+");
     static Pattern PULL_PATTERN = Pattern.compile("\\/pull\\/\\d+");
