@@ -26,7 +26,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
@@ -49,6 +48,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.tika.utils.ProcessUtils;
 
 import javax.net.ssl.SSLContext;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -65,14 +65,13 @@ import java.util.concurrent.TimeUnit;
 
 public class HttpUtils {
 
-    static long HARD_TIMEOUT_MILLIS = 2*60*1000;
+    static long HARD_TIMEOUT_MILLIS = 2 * 60 * 1000;
     static int MAX_WGET_RETRIES = 2;
 
     static long MAX_THROTTLE_ATTEMPTS = 4;
     static long THROTTLE_SLEEP_INCREMENTS_MILLIS = 120000;
 
     /**
-     *
      * @param url url-encoded url -- this does not encode the url!
      * @return
      * @throws ClientException
@@ -97,30 +96,46 @@ public class HttpUtils {
             throw new IllegalArgumentException(url, e);
         }
 
+        HttpResponse httpResponse = null;
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            try (CloseableHttpResponse httpResponse = httpClient.execute(target, httpGet)) {
-                if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                    String msg = new String(EntityUtils.toByteArray(
-                            httpResponse.getEntity()), StandardCharsets.UTF_8);
-                    System.err.println("error: "+msg);
-                    for (Header header : httpResponse.getAllHeaders()) {
-                        System.err.println(header);
-                    }
-                    throw new ClientException("Bad status code: " +
-                            httpResponse.getStatusLine().getStatusCode()
-                            + "for url: " + url);
-                }
+            httpResponse = httpClient.execute(target, httpGet);
+            int throttleAttempts = 0;
+            while (httpResponse.getStatusLine().getStatusCode() == 429 && ++throttleAttempts < MAX_THROTTLE_ATTEMPTS) {
+                long throttleAmount = (throttleAttempts) * THROTTLE_SLEEP_INCREMENTS_MILLIS;
+                System.err.println("received 429; must be throttling; sleeping for " + throttleAmount + " ms.");
+                try {
+                    Thread.sleep(throttleAmount);
+                } catch (InterruptedException e) {
 
-                return EntityUtils.toByteArray(httpResponse.getEntity());
+                }
+                silentlyClose(httpResponse);
+                httpResponse = httpClient.execute(target, httpGet);
             }
+            if (httpResponse.getStatusLine().getStatusCode() == 429) {
+                throw new StopTheWorldClientException("429 not throttled enough");
+            }
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                String msg = new String(EntityUtils.toByteArray(
+                        httpResponse.getEntity()), StandardCharsets.UTF_8);
+                System.err.println("error: " + msg);
+                for (Header header : httpResponse.getAllHeaders()) {
+                    System.err.println(header);
+                }
+                throw new ClientException("Bad status code: " +
+                        httpResponse.getStatusLine().getStatusCode()
+                        + "for url: " + url);
+            }
+
+            return EntityUtils.toByteArray(httpResponse.getEntity());
+
         } catch (IOException e) {
             throw new ClientException(url, e);
+        } finally {
+            silentlyClose(httpResponse);
         }
     }
 
     /**
-     *
-     *
      * @param url url-encoded url -- this does not encode the url!
      * @return
      * @throws ClientException
@@ -131,7 +146,7 @@ public class HttpUtils {
 
     public static void get(HttpClient httpClient, String url, Path targetPath) throws ClientException {
 
-                //overly simplistic...need to add proxy, etc., but good enough for now
+        //overly simplistic...need to add proxy, etc., but good enough for now
         URI uri = null;
         try {
             uri = new URI(url);
@@ -163,31 +178,40 @@ public class HttpUtils {
         HttpResponse httpResponse = null;
         try {
             httpResponse = httpClient.execute(target, httpGet);
-                if (httpResponse.getStatusLine().getStatusCode() != 200) {
-                    String msg = new String(EntityUtils.toByteArray(
-                            httpResponse.getEntity()), StandardCharsets.UTF_8);
-                    throw new ClientException("Bad status code: " +
-                            httpResponse.getStatusLine().getStatusCode()
-                            + " for url: " + url);
-                }
+            int throttleAttempts = 0;
+            while (httpResponse.getStatusLine().getStatusCode() == 429 && ++throttleAttempts < MAX_THROTTLE_ATTEMPTS) {
+                long throttleAmount = (throttleAttempts) * THROTTLE_SLEEP_INCREMENTS_MILLIS;
+                System.err.println("received 429; must be throttling; sleeping for " + throttleAmount + " ms.");
+                try {
+                    Thread.sleep(throttleAmount);
+                } catch (InterruptedException e) {
 
-                Files.copy(httpResponse.getEntity().getContent(), targetPath,
-                        StandardCopyOption.REPLACE_EXISTING);
+                }
+                httpResponse = httpClient.execute(target, httpGet);
+            }
+            if (httpResponse.getStatusLine().getStatusCode() == 429) {
+                throw new StopTheWorldClientException("429 not throttled enough");
+            }
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                String msg = new String(EntityUtils.toByteArray(
+                        httpResponse.getEntity()), StandardCharsets.UTF_8);
+                throw new ClientException("Bad status code: " +
+                        httpResponse.getStatusLine().getStatusCode()
+                        + " for url: " + url);
+            }
+
+            Files.copy(httpResponse.getEntity().getContent(), targetPath,
+                    StandardCopyOption.REPLACE_EXISTING);
 
         } catch (IOException e) {
             throw new ClientException(url, e);
         } finally {
-            if (httpResponse != null && httpResponse instanceof CloseableHttpClient) {
-                try {
-                    ((CloseableHttpResponse)httpResponse).close();
-                } catch (IOException e) {
-                    //silently swallow
-                }
-            }
+            silentlyClose(httpResponse);
         }
     }
 
-    public static byte[] get(HttpClient httpClient, String url) throws IOException {
+    public static byte[] get(HttpClient httpClient, String url) throws
+            ClientException, IOException {
         //overly simplistic...need to add proxy, etc., but good enough for now
         URI uri = null;
         try {
@@ -213,15 +237,19 @@ public class HttpUtils {
 
             httpResponse = httpClient.execute(target, httpGet);
             int throttleAttempts = 0;
-            while (httpResponse.getStatusLine().getStatusCode() == 429 && throttleAttempts < MAX_THROTTLE_ATTEMPTS) {
-                long throttleAmount = (++throttleAttempts) * THROTTLE_SLEEP_INCREMENTS_MILLIS;
-                System.err.println("received 429; must be throttling; sleeping for "+throttleAmount+" ms.");
+            while (httpResponse.getStatusLine().getStatusCode() == 429 && ++throttleAttempts < MAX_THROTTLE_ATTEMPTS) {
+                long throttleAmount = (throttleAttempts) * THROTTLE_SLEEP_INCREMENTS_MILLIS;
+                System.err.println("received 429; must be throttling; sleeping for " + throttleAmount + " ms.");
                 try {
                     Thread.sleep(throttleAmount);
                 } catch (InterruptedException e) {
 
                 }
+                silentlyClose(httpResponse);
                 httpResponse = httpClient.execute(target, httpGet);
+            }
+            if (httpResponse.getStatusLine().getStatusCode() == 429) {
+                throw new StopTheWorldClientException("429 not throttled enough");
             }
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 String msg = new String(EntityUtils.toByteArray(
@@ -231,10 +259,20 @@ public class HttpUtils {
                         + "for url: " + url + "; msg: " + msg);
             }
             return EntityUtils.toByteArray(httpResponse.getEntity());
-
         } finally {
-            if (httpResponse != null && httpResponse instanceof CloseableHttpResponse) {
-                    ((CloseableHttpResponse) httpResponse).close();
+            silentlyClose(httpResponse);
+        }
+    }
+
+    private static void silentlyClose(HttpResponse httpResponse) {
+        if (httpResponse == null) {
+            return;
+        }
+        if (httpResponse instanceof Closeable) {
+            try {
+                ((Closeable) httpResponse).close();
+            } catch (IOException e) {
+                //silently close :(
             }
         }
     }
@@ -252,7 +290,7 @@ public class HttpUtils {
         if (scheme.endsWith("s")) {
             try {
                 return httpClientTrustingAllSSLCerts2(username, password);
-            } catch (NoSuchAlgorithmException|KeyManagementException|KeyStoreException e) {
+            } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
                 throw new ClientException(e);
             }
         } else if (username != null && password != null) {
@@ -275,9 +313,9 @@ public class HttpUtils {
 
     public static void wget(String url, Path outputFile) throws InterruptedException, ClientException, IOException {
 
-        String[] args = new String[]{ "wget", url,
-                "--timeout="+(long)((double)HARD_TIMEOUT_MILLIS/(double)1000),//timeout in seconds
-                "--tries="+MAX_WGET_RETRIES,
+        String[] args = new String[]{"wget", url,
+                "--timeout=" + (long) ((double) HARD_TIMEOUT_MILLIS / (double) 1000),//timeout in seconds
+                "--tries=" + MAX_WGET_RETRIES,
                 "-O", ProcessUtils.escapeCommandLine(outputFile.toAbsolutePath().toString())};
 
         ProcessBuilder builder = new ProcessBuilder(args);
@@ -287,10 +325,10 @@ public class HttpUtils {
         try {
             int exitValue = p.exitValue();
             if (exitValue != 0) {
-                throw new ClientException("bad exit value: "+exitValue);
+                throw new ClientException("bad exit value: " + exitValue);
             }
         } catch (IllegalThreadStateException e) {
-            System.err.println("timeout on : "+url + " -> "+ outputFile);
+            System.err.println("timeout on : " + url + " -> " + outputFile);
             p.destroyForcibly();
             throw new ClientException("timeout");
         }

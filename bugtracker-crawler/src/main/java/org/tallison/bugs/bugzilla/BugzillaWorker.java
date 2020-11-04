@@ -18,6 +18,7 @@ import org.tallison.bugs.Attachment;
 import org.tallison.bugs.ClientException;
 import org.tallison.bugs.HttpUtils;
 import org.tallison.bugs.ScraperUtils;
+import org.tallison.bugs.StopTheWorldClientException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,6 +44,7 @@ class BugzillaWorker implements Callable<String> {
 
     private static String LIMIT = "&limit="; //how many results to bring back
     private static String OFFSET = "&offset="; //start at ...how far into the results to return.
+    private static final long SLEEP_MILLIS_BETWEEN_REQUESTS = 2000;
 
     //restCGI always ends in /
     private String generalQueryByURL = "bug?" +
@@ -100,8 +102,14 @@ class BugzillaWorker implements Callable<String> {
             if (commandline == POISON_COMMANDLINE) {
                 return project;
             }
-            processCommandline(commandline);
-
+            try {
+                processCommandline(commandline);
+            } catch (StopTheWorldClientException e) {
+                throw e;
+            } catch (ClientException|IOException e) {
+                System.err.println("error on "+commandline + " ");
+                e.printStackTrace();
+            }
         }
     }
 
@@ -190,11 +198,7 @@ class BugzillaWorker implements Callable<String> {
                 for (String issueId : issueIds) {
                     networkCall = processIssue(issueId);
                     if (networkCall) {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                        sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
                     }
                 }
             }
@@ -234,6 +238,7 @@ class BugzillaWorker implements Callable<String> {
             }
             gz(resultsPath, bytes);
         }
+        sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
         String json = new String(bytes, StandardCharsets.UTF_8);
         System.out.println(json);
         JsonElement root = JsonParser.parseString(json);
@@ -257,6 +262,15 @@ class BugzillaWorker implements Callable<String> {
             }
         }
         return ids;
+    }
+
+    private void sleepMS(long sleepMillis) {
+        try {
+            System.err.println("about to sleep "+sleepMillis + " ms.");
+            Thread.sleep(sleepMillis);
+        } catch (InterruptedException e) {
+            //swallow
+        }
     }
 
     private String getIssueIdUrl(int offset, int pageSize) {
@@ -297,20 +311,20 @@ class BugzillaWorker implements Callable<String> {
             try {
                 try {
                     HttpUtils.wget(url, tmp);
+                } catch (StopTheWorldClientException e) {
+                    throw e;
                 } catch (InterruptedException | ClientException e) {
                     System.err.println("exception for " + project + " : " + issueId);
                     e.printStackTrace();
                     if (e.getMessage() != null && e.getMessage().contains("rate limited")) {
                         System.err.println("rate limited sleeping for two minutes");
-                        try {
-                            Thread.sleep(120000);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
-                        }
+                        sleepMS(120000);
                         try {
                             HttpUtils.wget(url, tmp);
                         } catch (InterruptedException | ClientException e2) {
-                            e.printStackTrace();
+                            if (e.getMessage() != null && e.getMessage().contains("rate limited")) {
+                                throw new StopTheWorldClientException("rate limited");
+                            }
                             return networkCall;
                         }
                     } else {

@@ -60,6 +60,11 @@ import java.util.concurrent.Future;
 
 public class BugzillaScraper {
 
+    /**
+     * https://infra.apache.org/infra-ban.html
+     * BEWARE crawling apache resources.  Be kind. They aren't joking.
+     */
+
 /*
 Thanks to @triagegirl for noting that bugzilla has an API!!!
  */
@@ -80,7 +85,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
      */
 
 
-    private static int NUM_THREADS = 5;
+    private static int NUM_THREADS = 1;
 
     public static void main(String[] args) throws Exception {
         if (Files.isRegularFile(Paths.get(args[0]))) {
@@ -91,7 +96,7 @@ Thanks to @triagegirl for noting that bugzilla has an API!!!
     }
 
     private static void processCommandline(String[] args) throws Exception {
-        ArrayBlockingQueue<String[]> commandLines = new ArrayBlockingQueue<>(1);
+        ArrayBlockingQueue<String[]> commandLines = new ArrayBlockingQueue<>(2);
         commandLines.add(args);
         commandLines.add(BugzillaWorker.POISON_COMMANDLINE);
         BugzillaWorker worker = new BugzillaWorker(commandLines);
