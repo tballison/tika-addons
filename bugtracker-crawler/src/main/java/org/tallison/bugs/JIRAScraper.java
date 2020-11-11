@@ -47,36 +47,42 @@ import java.util.regex.Pattern;
 public class JIRAScraper {
 
     Matcher urlMatcher = Pattern.compile("\\A(.*)\\/projects\\/(.*)\\Z").matcher("");
-    //https://issues.apache.org/jira/rest/api/2/search?jql=project=PDFBOX
-    // &fields=key,issuetype,status,summary,attachment
+    //https://issues.apache.org/jira/rest/api/2/search?jql=project=PDFBOX&fields=key,issuetype,status,summary,attachment
 
     private static String URL_BASE = "https://issues.apache.org/jira";//https://ec.europa.eu/cefdigital/tracker";//https://issues.apache.org/jira";
     private static String REST_QUERY_BASE = "/rest/api/2/search?jql=project=";
     private static String FIELDS = "&fields=key,issuetype,status,summary,attachment";
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
+    private static final long SLEEP_MILLIS_BETWEEN_REQUESTS = 1000;
+
+
     int maxResults = 200;
 
     public static void main(String[] args) throws Exception {
         Path jiras = Paths.get(args[0]);
         Path outputRoot = Paths.get(args[1]);
+        int maxToFetch = -1;
+        if (args.length > 2) {
+            maxToFetch = Integer.parseInt(args[2]);
+        }
         JIRAScraper scraper = new JIRAScraper();
         if (Files.isRegularFile(jiras)) {
             try (BufferedReader reader = Files.newBufferedReader(jiras, StandardCharsets.UTF_8)) {
                 String line = reader.readLine();
                 while (line != null) {
                     if (! line.startsWith("#")) {
-                        scraper.execute(line.trim(), outputRoot);
+                        scraper.execute(line.trim(), outputRoot, maxToFetch);
                     }
                     line = reader.readLine();
                 }
             }
         } else {
-            scraper.execute(args[0], outputRoot);
+            scraper.execute(args[0], outputRoot, maxToFetch);
         }
     }
 
-    private void execute(String projectUrl, Path outputRoot) throws IOException, ClientException {
+    private void execute(String projectUrl, Path outputRoot, int maxToFetch) throws IOException, ClientException {
         urlMatcher.reset(projectUrl);
         String baseUrl = "";
         String project = "";
@@ -94,18 +100,24 @@ public class JIRAScraper {
         int start = 0;
         int total = -1;
         int issueCount = 0;
+        if (maxToFetch > 0 && maxToFetch < maxResults) {
+            maxResults = maxToFetch;
+        }
         while (total < 0 || start < total) {
-            String url = baseUrl + REST_QUERY_BASE + project
+            String url = baseUrl + REST_QUERY_BASE + project +
+                    "%20ORDER%20BY%20updated%20DESC"
                     //+"%20AND%20KEY=PDFBOX-1780"
                     + FIELDS + "&startAt=" + start + "&maxResults=" + maxResults;
-
+            System.err.println("going to get issues: "+url);
             byte[] jsonBytes = HttpUtils.get(url);
             writeJson(outputRoot, project, start, jsonBytes);
+            sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
             String json = new String(jsonBytes, StandardCharsets.UTF_8);
             JsonElement el = JsonParser.parseString(json);
             JsonObject root = (JsonObject) el;
             total = root.getAsJsonPrimitive("total").getAsInt();
             JsonArray arr = root.getAsJsonArray("issues");
+            System.err.println("got issue numbers "+arr.size());
             for (JsonElement issueElement : arr) {
                 JsonObject issueObj = (JsonObject) issueElement;
                 String issueId = issueObj.getAsJsonPrimitive("key").getAsString();
@@ -113,10 +125,15 @@ public class JIRAScraper {
                 for (int i = 0; i < attachments.size(); i++) {
                     Attachment a = attachments.get(i);
                     ScraperUtils.grabAttachment(outputDir, a, issueId, i);
+                    sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
                 }
                 issueCount++;
                 System.out.println("issue: " + issueId + " " +
                         "start="+start+" issueCount="+issueCount+" total="+ total);
+                if (maxToFetch > 0 && issueCount >= maxToFetch) {
+                    System.out.println("Fetched up to maxToFetch "+issueCount);
+                    return;
+                }
             }
             start += arr.size();
             if (arr.size() == 0) {
@@ -162,6 +179,13 @@ public class JIRAScraper {
         return attachments;
     }
 
-
+    private void sleepMS(long sleepMillis) {
+        try {
+            System.err.println("about to sleep "+sleepMillis + " ms.");
+            Thread.sleep(sleepMillis);
+        } catch (InterruptedException e) {
+            //swallow
+        }
+    }
 
 }

@@ -210,7 +210,10 @@ class BugzillaWorker implements Callable<String> {
             ClientException, InterruptedException {
         Path resultsPath = metadataDir.resolve(offset + ".json.gz");
         byte[] bytes = null;
-        if (Files.isRegularFile(resultsPath)) {
+
+        //need to make network call when offset == 0 so that
+        //we can fix restCGI if necessary
+        if (offset != 0 && Files.isRegularFile(resultsPath)) {
             bytes = gunzip(resultsPath);
         } else {
             String url = getIssueIdUrl(offset, pageSize);
@@ -218,7 +221,6 @@ class BugzillaWorker implements Callable<String> {
             Path tmp = Files.createTempFile("bugzilla", "");
             try {
                 System.err.println("trying: " + url);
-
                 if (offset == 0) {
                     try {
                         HttpUtils.wget(url, tmp);
@@ -237,8 +239,8 @@ class BugzillaWorker implements Callable<String> {
                 Files.delete(tmp);
             }
             gz(resultsPath, bytes);
+            sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
         }
-        sleepMS(SLEEP_MILLIS_BETWEEN_REQUESTS);
         String json = new String(bytes, StandardCharsets.UTF_8);
         System.out.println(json);
         JsonElement root = JsonParser.parseString(json);
