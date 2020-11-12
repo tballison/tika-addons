@@ -15,3 +15,18 @@ https://github.com/prawnpdf/prawn
 https://github.com/axa-group/Parsr
 https://github.com/pdfcpu/pdfcpu
 https://github.com/pikepdf/pikepdf
+#phase 3
+https://github.com/pdf2htmlEX/pdf2htmlEX
+https://github.com/coolwanglu/pdf2htmlEX
+https://github.com/pdf-rs/pdf
+https://github.com/J-F-Liu/lopdf
+https://github.com/unidoc/unipdf
+https://github.com/unidoc/unioffice
+https://github.com/PHPOffice/PHPWord
+https://github.com/python-openxml/python-docx
+https://github.com/Ziv-Barber/officegen/issues
+https://github.com/dbashford/textract
+https://github.com/deanmalmgren/textract
+https://github.com/jgm/pandoc
+https://github.com/MrRio/jsPDF/issues
+https://github.com/wkhtmltopdf/wkhtmltopdf

@@ -11,7 +11,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public abstract class CommandlineFileProcessor extends FileToFileProcessor {
     private static final Gson GSON = new Gson();
-    private static final long DEFAULT_TIMEOUT_MILLIS = 2000;
+    private static final long DEFAULT_TIMEOUT_MILLIS = 120000;
     private static final int DEFAULT_MAX_BUFFER = 100000;
     private long timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
     private int maxBuffer = DEFAULT_MAX_BUFFER;
@@ -35,6 +35,6 @@ public abstract class CommandlineFileProcessor extends FileToFileProcessor {
         }
     }
 
-    protected abstract String[] getCommandLine(Path srcPath, Path targPath);
+    protected abstract String[] getCommandLine(Path srcPath, Path targPath) throws IOException;
 
 }

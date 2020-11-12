@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
  */
 public class Step4SubdirectoryBalancer {
 
-    static int MAX_PER_DIRECTORY = 10;
+    static int MAX_PER_DIRECTORY = 10000;
 
     public static void main(String[] args) throws Exception {
         Path root = Paths.get(args[0]);

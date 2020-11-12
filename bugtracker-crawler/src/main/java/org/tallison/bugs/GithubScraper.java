@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,15 +40,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GithubScraper {
-    /**
-     * /home/tallison/data/github/sumatra SUMATRAPDF https://github.com/sumatrapdfreader/sumatrapdf
-     * /home/tallison/data/github/mozilla MOZILLA https://github.com/mozilla/pdf.js
-     * /home/tallison/data/github/qpdf QPDF https://github.com/qpdf/qpdf
-     * /home/tallison/data/github/openpdf OPENPDF https://github.com/LibrePDF/OpenPDF
-     * /home/tallison/data/github/ocrmypdf OCRMYPDF https://github.com/jbarlow83/OCRmyPDF
-     * /home/tallison/data/github/laraval-snappy LARAVEL_SNAPPY https://github.com/barryvdh/laravel-snappy
-     * /Users/allison/data/github/pdfminer PDFMINER https://github.com/pdfminer/pdfminer.six
-     */
 
     /**
      * TODO see SUMATRA-1343 --need to add links to github repo files;
@@ -58,6 +50,8 @@ public class GithubScraper {
      * Beware: github does not like multithreaded requests.  It'll kick back a 429
      * if you request too much data too quickly.  No point in multithreading the requests.
      * Don't even run in multiple processes if running against _the_ github.
+     *
+     * Remember to be kind whenever possible.  It is always possible.
      */
     static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*)\"?>");
     static Pattern FILES_PATTERN = Pattern.compile("\\/files\\/\\d+");
@@ -80,41 +74,56 @@ public class GithubScraper {
 
         String fileOrUrl = args[0];
         Path root = Paths.get(args[1]);
+
+        Set<String> seenProjects = new HashSet<>();
+        List<URLProjectPair> projects = new ArrayList<>();
         if (Files.isRegularFile(Paths.get(fileOrUrl))) {
             try (BufferedReader reader = Files.newBufferedReader(Paths.get(fileOrUrl), StandardCharsets.UTF_8)) {
                 String baseUrl = reader.readLine();
                 while (baseUrl != null) {
                     if (! baseUrl.startsWith("#")) {
-                        GithubScraper scraper = new GithubScraper();
-                        System.out.println("going to get " + baseUrl);
-                        scraper.scrape(root, baseUrl);
+                        URLProjectPair p = new URLProjectPair();
+                        p.url = baseUrl.trim();
+                        p.project = FilenameUtils.getName(baseUrl);
+                        if (seenProjects.contains(p.project)) {
+                            String parent = new File(baseUrl).getParentFile().getName();
+                            p.project = parent+"--"+p.project;
+                        }
+                        seenProjects.add(p.project);
+                        projects.add(p);
                     }
                     baseUrl = reader.readLine();
-
                 }
             }
-        } else {
-            String baseUrl = fileOrUrl;
             GithubScraper scraper = new GithubScraper();
-            scraper.scrape(root, baseUrl);
+            for (URLProjectPair p : projects) {
+                scraper.scrape(root, p);
+
+            }
+        } else {
+            URLProjectPair p = new URLProjectPair();
+            p.url = fileOrUrl;
+            p.project = FilenameUtils.getName(fileOrUrl);
+
+            GithubScraper scraper = new GithubScraper();
+            scraper.scrape(root, p);
         }
 
     }
 
-    private void scrape(Path root, String baseUrl) throws ClientException, IOException {
-        String projName = FilenameUtils.getName(baseUrl);
-        String lcProjName = projName.toLowerCase(Locale.US);
+    private void scrape(Path root, URLProjectPair p) throws ClientException, IOException {
+        String lcProjName = p.project.toLowerCase(Locale.US);
         Path docsRoot = root.resolve(DOCS).resolve(lcProjName);
         Path metadataRoot = root.resolve(METADATA).resolve(lcProjName);
 
         Files.createDirectories(metadataRoot);
         Files.createDirectories(docsRoot);
-        int maxIssue = getMaxIssue(baseUrl);
+        int maxIssue = getMaxIssue(p.url);
         if (maxIssue < 0) {
             throw new RuntimeException("Couldn't find max issue "+maxIssue);
         }
         for (int i = maxIssue; i > -1; i--) {
-            processIssue(i, baseUrl, lcProjName, docsRoot, metadataRoot);
+            processIssue(i, p.url, lcProjName, docsRoot, metadataRoot);
         }
     }
 
@@ -314,5 +323,10 @@ public class GithubScraper {
             }
             i++;
         }
+    }
+
+    private static class URLProjectPair {
+        String url;
+        String project;
     }
 }

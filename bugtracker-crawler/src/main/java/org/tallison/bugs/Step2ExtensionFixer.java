@@ -108,6 +108,12 @@ public class Step2ExtensionFixer {
         DONT_CHANGE_ORIG_EXT.add(".abw");//xml
         DONT_CHANGE_ORIG_EXT.add(".xcd");//xml
         DONT_CHANGE_ORIG_EXT.add(".xconf");//xml config file for Apache FOP
+        DONT_CHANGE_ORIG_EXT.add(".xpi");//zip
+        DONT_CHANGE_ORIG_EXT.add(".xul");//xml
+        DONT_CHANGE_ORIG_EXT.add(".plist");//xml or binary
+        DONT_CHANGE_ORIG_EXT.add(".ai");//adobe illustrator otherwise automatically detected as pdf
+        DONT_CHANGE_ORIG_EXT.add(".war");
+        DONT_CHANGE_ORIG_EXT.add(".bau");//libre office something or other, zip
         //to add  ott scc sci fsxw -> zip
         //fsxw -> xml
         //odt -> ott

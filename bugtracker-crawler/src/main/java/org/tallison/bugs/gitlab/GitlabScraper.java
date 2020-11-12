@@ -44,12 +44,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Work in progress.  Ignore for now.
+ * Work in progress. TODO: need to update to
+ * read urls from file
  */
 public class GitlabScraper {
     /**
+     *
      * /home/tallison/data/gitlab https://gitlab.freedesktop.org/poppler/poppler/
      * /home/tallison/data/gitlab https://gitlab.freedesktop.org/cairo/cairo/
+     * /home/tallison/data/gitlab https://gitlab.gnome.org/GNOME/evince
      *
      */
     static Pattern HREF_PATTERN = Pattern.compile("<a ([^>]*)href=\"([^\"]+)([^>]*>)");
