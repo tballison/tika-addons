@@ -11,18 +11,18 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>batchlite</artifactId>
     <groupId>org.tallison</groupId>
-    <version>0.1</version>
+    <version>0.2-SNAPSHOT</version>
     <name>batchlite</name>
     <description>utilities for running processes multithreaded against files on a file share</description>
-    <url>https://github.com/tballison/tika-addons/batchlite</url>
+    <url>https://github.com/tballison/tika-addons/tree/main/batchlite</url>
     <developers>
         <developer>
             <name>Tim Allison</name>
         </developer>
     </developers>
     <scm>
-        <url>https://github.com/tballison/tika-addons/batchlite</url>
-        <connection>scm:git:https://github.com/tballison/tika-addons/batchlite</connection>
+        <url>https://github.com/tballison/tika-addons</url>
+        <connection>scm:git:https://github.com/tballison/tika-addons</connection>
     </scm>
 
     <licenses>
