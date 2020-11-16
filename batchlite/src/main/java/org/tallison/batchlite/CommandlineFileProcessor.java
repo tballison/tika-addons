@@ -15,9 +15,12 @@ public abstract class CommandlineFileProcessor extends FileToFileProcessor {
     private static final int DEFAULT_MAX_BUFFER = 100000;
     private long timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
     private int maxBuffer = DEFAULT_MAX_BUFFER;
-
-    public CommandlineFileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot, Path targRoot) {
+    private final MetadataWriter metadataWriter;
+    public CommandlineFileProcessor(ArrayBlockingQueue<Path> queue,
+                                    Path srcRoot, Path targRoot,
+                                    MetadataWriter metadataWriter) {
         super(queue, srcRoot, targRoot);
+        this.metadataWriter = metadataWriter;
     }
 
     @Override
@@ -27,13 +30,8 @@ public abstract class CommandlineFileProcessor extends FileToFileProcessor {
         String[] commandline = getCommandLine(srcPath, outputPath);
         FileProcessResult r = ProcessExecutor.execute(new ProcessBuilder(commandline),
                 timeoutMillis, maxBuffer);
-        if (! Files.isDirectory(metadataPath.getParent())) {
-            Files.createDirectories(metadataPath.getParent());
-        }
-        try (Writer writer = Files.newBufferedWriter(metadataPath, StandardCharsets.UTF_8)) {
-            GSON.toJson(r, writer);
-        }
-    }
+        metadataWriter.write(relPath, r);
+     }
 
     protected abstract String[] getCommandLine(Path srcPath, Path targPath) throws IOException;
 

@@ -27,4 +27,40 @@ public class FileProcessResult {
     long stderrLength = -1;
     boolean stderrTruncated;
     boolean stdoutTruncated;
+
+    public String getStderr() {
+        return stderr;
+    }
+
+    public String getStdout() {
+        return stdout;
+    }
+
+    public int getExitValue() {
+        return exitValue;
+    }
+
+    public long getProcessTimeMillis() {
+        return processTimeMillis;
+    }
+
+    public boolean isTimeout() {
+        return isTimeout;
+    }
+
+    public long getStdoutLength() {
+        return stdoutLength;
+    }
+
+    public long getStderrLength() {
+        return stderrLength;
+    }
+
+    public boolean isStderrTruncated() {
+        return stderrTruncated;
+    }
+
+    public boolean isStdoutTruncated() {
+        return stdoutTruncated;
+    }
 }

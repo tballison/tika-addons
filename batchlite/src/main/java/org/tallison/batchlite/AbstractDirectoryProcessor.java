@@ -54,7 +54,6 @@ public abstract class AbstractDirectoryProcessor {
     }
 
     public void execute() throws SQLException {
-
         ArrayBlockingQueue<Path> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         List<AbstractFileProcessor> processors = getProcessors(queue);
         numThreads = processors.size()+1;

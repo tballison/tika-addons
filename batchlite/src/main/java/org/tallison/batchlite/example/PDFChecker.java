@@ -23,6 +23,8 @@ import org.tallison.batchlite.CommandlineFileProcessor;
 import org.tallison.batchlite.MetadataWriter;
 import org.tallison.batchlite.writer.MetadataWriterFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -30,16 +32,23 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
- * This is an example of running the file command on a directory
- * of files
+ * This is an example of running PDFChecker on a directory of files
+ * see: https://www.datalogics.com/products/pdf-tools/pdf-checker/
+ *
+ * This currently hardcodes the use of /CheckerProfiles/everything.json.
+ * This assumes that PDFChecker has been installed.
+ *
+ * commandline example: /home/tallison/tools/pdfchecker/PDF_Checker input output pdfchecker_metadata.csv 6
  */
-public class FileCommandExample extends AbstractDirectoryProcessor {
+public class PDFChecker extends AbstractDirectoryProcessor {
 
+    private final String pdfcheckerRoot;
     private final Path targRoot;
     private final MetadataWriter metadataWriter;
     private final int numThreads;
-    public FileCommandExample(Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
+    public PDFChecker(String pdfCheckerRoot, Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
         super(srcRoot);
+        this.pdfcheckerRoot = pdfCheckerRoot;
         this.targRoot = targRoot;
         this.metadataWriter = metadataWriter;
         this.numThreads = numThreads;
@@ -55,40 +64,51 @@ public class FileCommandExample extends AbstractDirectoryProcessor {
     }
 
     private class FileProcessor extends CommandlineFileProcessor {
-        public FileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot,
-                             Path targRoot, MetadataWriter metadataWriter) {
+        public FileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot, Path targRoot,
+                             MetadataWriter metadataWriter) {
             super(queue, srcRoot, targRoot, metadataWriter);
         }
 
         @Override
-        protected String[] getCommandLine(Path srcPath, Path targPath) {
+        protected String[] getCommandLine(Path srcPath, Path targPath) throws IOException {
+            if (!Files.isDirectory(targPath.getParent())) {
+                Files.createDirectories(targPath.getParent());
+            }
             return new String[]{
-                    "file",
-                    "-b", "--mime-type",
-                    ProcessUtils.escapeCommandLine(srcPath.toAbsolutePath().toString())
+                    ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/pdfchecker"),
+                    "--profile",
+                    ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/CheckerProfiles/everything.json"),
+                    "--input",
+                    ProcessUtils.escapeCommandLine(srcPath.toAbsolutePath().toString()),
+                    "-s",
+                    ProcessUtils.escapeCommandLine(targPath.toAbsolutePath().toString())
             };
+        }
+
+        @Override
+        protected String getExtension() {
+            return ".json";
         }
     }
 
     public static void main(String[] args) throws Exception {
-        Path srcRoot = Paths.get(args[0]);
-        Path targRoot = Paths.get(args[1]);
-        String metadataWriterString = args[2];
+        String pdfcheckerRoot = args[0];
+        Path srcRoot = Paths.get(args[1]);
+        Path targRoot = Paths.get(args[2]);
+        String metadataWriterString = args[3];
         int numThreads = 10;
-        if (args.length > 3) {
-            numThreads = Integer.parseInt(args[3]);
+        if (args.length > 4) {
+            numThreads = Integer.parseInt(args[4]);
         }
         long start = System.currentTimeMillis();
-        MetadataWriter writer = MetadataWriterFactory.build(metadataWriterString);
+        MetadataWriter metadataWriter = MetadataWriterFactory.build(metadataWriterString);
+
         try {
-            FileCommandExample runner = new FileCommandExample(srcRoot, targRoot, writer, numThreads);
+            PDFChecker runner = new PDFChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
             //runner.setMaxFiles(100);
             runner.execute();
         } finally {
-            writer.close();
-            long elapsed = System.currentTimeMillis()-start;
-            System.out.println("Processed "+ writer.getRecordsWritten() + " files in "+
-                    elapsed + " ms.");
+            metadataWriter.close();
         }
     }
 }
