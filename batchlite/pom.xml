@@ -2,13 +2,36 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
+    <!--<parent>
         <artifactId>tika-addons</artifactId>
         <groupId>org.tallison</groupId>
         <version>1.19-SNAPSHOT</version>
-    </parent>
+    </parent> -->
+
     <modelVersion>4.0.0</modelVersion>
     <artifactId>batchlite</artifactId>
+    <groupId>org.tallison</groupId>
+    <version>0.1</version>
+    <name>batchlite</name>
+    <description>utilities for running processes multithreaded against files on a file share</description>
+    <url>https://github.com/tballison/tika-addons/batchlite</url>
+    <developers>
+        <developer>
+            <name>Tim Allison</name>
+        </developer>
+    </developers>
+    <scm>
+        <url>https://github.com/tballison/tika-addons/batchlite</url>
+        <connection>scm:git:https://github.com/tballison/tika-addons/batchlite</connection>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <properties>
         <maven.compile.source>1.8</maven.compile.source>
         <maven.compile.target>1.8</maven.compile.target>
@@ -47,7 +70,7 @@
              <url>https://oss.sonatype.org/content/repositories/snapshots</url>
          </snapshotRepository> -->
         <repository>
-            <id>sonatype-nexus-staging</id>
+            <id>ossrh</id>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
@@ -124,7 +147,7 @@
                 <version>1.6.8</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>sonatype-nexus-staging</serverId>
+                    <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
                 </configuration>
