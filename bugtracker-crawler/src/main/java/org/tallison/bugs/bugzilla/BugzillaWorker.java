@@ -266,7 +266,7 @@ class BugzillaWorker implements Callable<String> {
         return ids;
     }
 
-    private void sleepMS(long sleepMillis) {
+    private static void sleepMS(long sleepMillis) {
         try {
             System.err.println("about to sleep "+sleepMillis + " ms.");
             Thread.sleep(sleepMillis);
@@ -406,7 +406,7 @@ class BugzillaWorker implements Callable<String> {
         }
     }
 
-    private String getAsString(JsonObject jsonObject, String key) {
+    private static String getAsString(JsonObject jsonObject, String key) {
         if (jsonObject == null || !jsonObject.has(key)) {
             return "";
         }
@@ -438,7 +438,7 @@ class BugzillaWorker implements Callable<String> {
             return set;
         }
     */
-    private void gz(Path p, byte[] bytes) throws IOException {
+    private static void gz(Path p, byte[] bytes) throws IOException {
         try (OutputStream os = Files.newOutputStream(p)) {
             try (GzipCompressorOutputStream gz = new GzipCompressorOutputStream(os)) {
                 gz.write(bytes);
@@ -448,7 +448,7 @@ class BugzillaWorker implements Callable<String> {
         }
     }
 
-    private byte[] gunzip(Path p) throws IOException {
+    private static byte[] gunzip(Path p) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try (InputStream is = Files.newInputStream(p)) {
             try (GzipCompressorInputStream gz = new GzipCompressorInputStream(is)) {
