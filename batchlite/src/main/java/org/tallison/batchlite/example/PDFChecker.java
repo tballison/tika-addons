@@ -19,7 +19,7 @@ package org.tallison.batchlite.example;
 import org.apache.tika.utils.ProcessUtils;
 import org.tallison.batchlite.AbstractDirectoryProcessor;
 import org.tallison.batchlite.AbstractFileProcessor;
-import org.tallison.batchlite.CommandlineFileProcessor;
+import org.tallison.batchlite.CommandlineFileToFileProcessor;
 import org.tallison.batchlite.MetadataWriter;
 import org.tallison.batchlite.writer.MetadataWriterFactory;
 
@@ -58,14 +58,14 @@ public class PDFChecker extends AbstractDirectoryProcessor {
     public List<AbstractFileProcessor> getProcessors(ArrayBlockingQueue<Path> queue) {
         List<AbstractFileProcessor> processors = new ArrayList<>();
         for (int i = 0; i < numThreads; i++) {
-            processors.add(new FileProcessor(queue, getRootDir(), targRoot, metadataWriter));
+            processors.add(new FileToFileProcessor(queue, getRootDir(), targRoot, metadataWriter));
         }
         return processors;
     }
 
-    private class FileProcessor extends CommandlineFileProcessor {
-        public FileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot, Path targRoot,
-                             MetadataWriter metadataWriter) {
+    private class FileToFileProcessor extends CommandlineFileToFileProcessor {
+        public FileToFileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot, Path targRoot,
+                                   MetadataWriter metadataWriter) {
             super(queue, srcRoot, targRoot, metadataWriter);
         }
 

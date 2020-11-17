@@ -24,11 +24,16 @@ public class ProcessExecutor {
 
     private static final String EMPTY = "";
     public static FileProcessResult execute(ProcessBuilder pb, long timeoutMillis, int maxBuffer) throws IOException {
+        return execute(pb, timeoutMillis, maxBuffer, maxBuffer);
+    }
+    public static FileProcessResult execute(ProcessBuilder pb,
+                                            long timeoutMillis,
+                                            int maxStdoutBuffer, int maxStdErrBuffer) throws IOException {
         Process p = pb.start();
         long elapsed = -1;
         long start = System.currentTimeMillis();
-        StreamEater outGobbler = new StreamEater(p.getInputStream(), maxBuffer);
-        StreamEater errGobbler = new StreamEater(p.getErrorStream(), maxBuffer);
+        StreamEater outGobbler = new StreamEater(p.getInputStream(), maxStdoutBuffer);
+        StreamEater errGobbler = new StreamEater(p.getErrorStream(), maxStdErrBuffer);
 
         Thread outThread = new Thread(outGobbler);
         outThread.start();

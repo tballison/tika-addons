@@ -46,16 +46,17 @@ public class StreamEater implements Runnable {
                 new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String line = r.readLine();
             while (line != null) {
-
-                if (streamLength + line.length() > maxBufferLength) {
-                    int len = maxBufferLength - (int) streamLength;
-                    if (len > 0) {
-                        isTruncated = true;
-                        String truncatedLine = line.substring(0, Math.min(line.length(), len));
-                        lines.add(truncatedLine);
+                if (maxBufferLength >= 0) {
+                    if (streamLength + line.length() > maxBufferLength) {
+                        int len = maxBufferLength - (int) streamLength;
+                        if (len > 0) {
+                            isTruncated = true;
+                            String truncatedLine = line.substring(0, Math.min(line.length(), len));
+                            lines.add(truncatedLine);
+                        }
+                    } else {
+                        lines.add(line);
                     }
-                } else {
-                    lines.add(line);
                 }
                 streamLength += line.length();
                 line = r.readLine();

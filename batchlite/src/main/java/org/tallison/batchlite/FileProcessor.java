@@ -21,35 +21,31 @@ import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
- * This takes an input file and runs {@link #process(String, Path, Path, MetadataWriter)}
- * on the input file, stores the metadata in targRoot/metadata
- * and the output (if there is any) in targRoot/output
+ * Extend this if the process doesn't write an output file...
+ * if all you care about is the status of the process and the
+ * stderr and stdout.
+ *
+ * See {@link FileToFileProcessor} for an abstract class that
+ * will process a file and write output to a new file.
  */
-public abstract class FileToFileProcessor extends AbstractFileProcessor {
-    private static final String OUTPUT_ROOT = "output";
+public abstract class FileProcessor extends AbstractFileProcessor {
 
     private final Path srcRoot;
-    private final Path outputRoot;
     private final MetadataWriter metadataWriter;
 
-    public FileToFileProcessor(ArrayBlockingQueue<Path> queue,
-                               Path srcRoot, Path targRoot, MetadataWriter metadataWriter) {
+    public FileProcessor(ArrayBlockingQueue<Path> queue,
+                         Path srcRoot, MetadataWriter metadataWriter) {
         super(queue);
         this.srcRoot = srcRoot.toAbsolutePath();
-        this.outputRoot = targRoot.resolve(OUTPUT_ROOT);
         this.metadataWriter = metadataWriter;
     }
 
     @Override
     public void process(Path srcPath) throws IOException {
         String relPath = srcRoot.relativize(srcPath).toString();
-        Path outputPath =  outputRoot.resolve(relPath+getExtension());
-        process(relPath, srcPath, outputPath, metadataWriter);
+        process(relPath, srcPath, metadataWriter);
     }
 
-    protected String getExtension() {
-        return "";
-    }
     protected abstract void process(String relPath, Path srcPath,
-                                    Path outputPath, MetadataWriter metadataWriter) throws IOException;
+                                    MetadataWriter metadataWriter) throws IOException;
 }

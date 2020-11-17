@@ -20,6 +20,7 @@ import org.apache.tika.utils.ProcessUtils;
 import org.tallison.batchlite.AbstractDirectoryProcessor;
 import org.tallison.batchlite.AbstractFileProcessor;
 import org.tallison.batchlite.CommandlineFileProcessor;
+import org.tallison.batchlite.CommandlineFileToFileProcessor;
 import org.tallison.batchlite.MetadataWriter;
 import org.tallison.batchlite.writer.MetadataWriterFactory;
 
@@ -35,12 +36,10 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class FileCommandExample extends AbstractDirectoryProcessor {
 
-    private final Path targRoot;
     private final MetadataWriter metadataWriter;
     private final int numThreads;
-    public FileCommandExample(Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
+    public FileCommandExample(Path srcRoot, MetadataWriter metadataWriter, int numThreads) {
         super(srcRoot);
-        this.targRoot = targRoot;
         this.metadataWriter = metadataWriter;
         this.numThreads = numThreads;
     }
@@ -49,19 +48,19 @@ public class FileCommandExample extends AbstractDirectoryProcessor {
     public List<AbstractFileProcessor> getProcessors(ArrayBlockingQueue<Path> queue) {
         List<AbstractFileProcessor> processors = new ArrayList<>();
         for (int i = 0; i < numThreads; i++) {
-            processors.add(new FileProcessor(queue, getRootDir(), targRoot, metadataWriter));
+            processors.add(new FileCommandProcessor(queue, getRootDir(), metadataWriter));
         }
         return processors;
     }
 
-    private class FileProcessor extends CommandlineFileProcessor {
-        public FileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot,
-                             Path targRoot, MetadataWriter metadataWriter) {
-            super(queue, srcRoot, targRoot, metadataWriter);
+    private class FileCommandProcessor extends CommandlineFileProcessor {
+        public FileCommandProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot,
+                                   MetadataWriter metadataWriter) {
+            super(queue, srcRoot, metadataWriter);
         }
 
         @Override
-        protected String[] getCommandLine(Path srcPath, Path targPath) {
+        protected String[] getCommandLine(Path srcPath) {
             return new String[]{
                     "file",
                     "-b", "--mime-type",
@@ -72,16 +71,15 @@ public class FileCommandExample extends AbstractDirectoryProcessor {
 
     public static void main(String[] args) throws Exception {
         Path srcRoot = Paths.get(args[0]);
-        Path targRoot = Paths.get(args[1]);
-        String metadataWriterString = args[2];
+        String metadataWriterString = args[1];
         int numThreads = 10;
-        if (args.length > 3) {
-            numThreads = Integer.parseInt(args[3]);
+        if (args.length > 2) {
+            numThreads = Integer.parseInt(args[2]);
         }
         long start = System.currentTimeMillis();
         MetadataWriter writer = MetadataWriterFactory.build(metadataWriterString);
         try {
-            FileCommandExample runner = new FileCommandExample(srcRoot, targRoot, writer, numThreads);
+            FileCommandExample runner = new FileCommandExample(srcRoot, writer, numThreads);
             //runner.setMaxFiles(100);
             runner.execute();
         } finally {
