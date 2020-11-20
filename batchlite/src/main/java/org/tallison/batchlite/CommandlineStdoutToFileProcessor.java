@@ -20,26 +20,26 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 
-public abstract class CommandlineFileToFileProcessor extends FileToFileProcessor {
+public abstract class CommandlineStdoutToFileProcessor extends FileToFileProcessor {
     private static final long DEFAULT_TIMEOUT_MILLIS = 120000;
     private static final int DEFAULT_MAX_BUFFER = 100000;
     private long timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
     private int maxBuffer = DEFAULT_MAX_BUFFER;
-    public CommandlineFileToFileProcessor(ArrayBlockingQueue<Path> queue,
-                                          Path srcRoot, Path targRoot,
-                                          MetadataWriter metadataWriter) {
+    public CommandlineStdoutToFileProcessor(ArrayBlockingQueue<Path> queue,
+                                            Path srcRoot, Path targRoot,
+                                            MetadataWriter metadataWriter) {
         super(queue, srcRoot, targRoot, metadataWriter);
     }
 
     @Override
     protected void process(String relPath,
                                     Path srcPath, Path outputPath, MetadataWriter metadataWriter) throws IOException {
-        String[] commandline = getCommandLine(srcPath, outputPath);
+        String[] commandline = getCommandLine(srcPath);
         FileProcessResult r = ProcessExecutor.execute(new ProcessBuilder(commandline),
-                timeoutMillis, maxBuffer);
+                timeoutMillis, outputPath, maxBuffer);
         metadataWriter.write(relPath, r);
      }
 
-    protected abstract String[] getCommandLine(Path srcPath, Path targPath) throws IOException;
+    protected abstract String[] getCommandLine(Path srcPath) throws IOException;
 
 }

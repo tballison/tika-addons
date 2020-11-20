@@ -20,6 +20,7 @@ import org.apache.tika.utils.ProcessUtils;
 import org.tallison.batchlite.AbstractDirectoryProcessor;
 import org.tallison.batchlite.AbstractFileProcessor;
 import org.tallison.batchlite.CommandlineFileToFileProcessor;
+import org.tallison.batchlite.CommandlineStdoutToFileProcessor;
 import org.tallison.batchlite.MetadataWriter;
 import org.tallison.batchlite.writer.MetadataWriterFactory;
 
@@ -39,14 +40,16 @@ import java.util.concurrent.ArrayBlockingQueue;
  * This assumes that PDFChecker has been installed.
  *
  * commandline example: /home/tallison/tools/pdfchecker/PDF_Checker input output pdfchecker_metadata.csv 6
+ *
+ * This is an example of redirecting stdout rather than relying on PDFChecker's -s flag
  */
-public class PDFChecker extends AbstractDirectoryProcessor {
+public class PDFStdoutChecker extends AbstractDirectoryProcessor {
 
     private final String pdfcheckerRoot;
     private final Path targRoot;
     private final MetadataWriter metadataWriter;
     private final int numThreads;
-    public PDFChecker(String pdfCheckerRoot, Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
+    public PDFStdoutChecker(String pdfCheckerRoot, Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
         super(srcRoot);
         this.pdfcheckerRoot = pdfCheckerRoot;
         this.targRoot = targRoot;
@@ -63,31 +66,26 @@ public class PDFChecker extends AbstractDirectoryProcessor {
         return processors;
     }
 
-    private class FileToFileProcessor extends CommandlineFileToFileProcessor {
+    private class FileToFileProcessor extends CommandlineStdoutToFileProcessor {
         public FileToFileProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot, Path targRoot,
                                    MetadataWriter metadataWriter) {
             super(queue, srcRoot, targRoot, metadataWriter);
         }
 
         @Override
-        protected String[] getCommandLine(Path srcPath, Path targPath) throws IOException {
-            if (!Files.isDirectory(targPath.getParent())) {
-                Files.createDirectories(targPath.getParent());
-            }
+        protected String[] getCommandLine(Path srcPath) throws IOException {
             return new String[]{
                     ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/pdfchecker"),
                     "--profile",
                     ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/CheckerProfiles/everything.json"),
                     "--input",
-                    ProcessUtils.escapeCommandLine(srcPath.toAbsolutePath().toString()),
-                    "-s",
-                    ProcessUtils.escapeCommandLine(targPath.toAbsolutePath().toString())
+                    ProcessUtils.escapeCommandLine(srcPath.toAbsolutePath().toString())
             };
         }
 
         @Override
         protected String getExtension() {
-            return ".json";
+            return ".txt";
         }
     }
 
@@ -104,7 +102,7 @@ public class PDFChecker extends AbstractDirectoryProcessor {
         MetadataWriter metadataWriter = MetadataWriterFactory.build(metadataWriterString);
 
         try {
-            PDFChecker runner = new PDFChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
+            PDFStdoutChecker runner = new PDFStdoutChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
             //runner.setMaxFiles(100);
             runner.execute();
         } finally {
@@ -112,6 +110,5 @@ public class PDFChecker extends AbstractDirectoryProcessor {
         }
         long elapsed = System.currentTimeMillis() - start;
         System.out.println("Proccessed "+metadataWriter.getRecordsWritten() + " records in "+elapsed+ "ms");
-
     }
 }
