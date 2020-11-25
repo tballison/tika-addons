@@ -11,7 +11,7 @@
 
     <artifactId>tika-eval-solrj</artifactId>
     <properties>
-        <tika.version>1.25-SNAPSHOT</tika.version>
+        <tika.version>1.24.1</tika.version>
         <solr.version>8.2.0</solr.version>
     </properties>
     <dependencies>

@@ -20,12 +20,10 @@ import org.apache.tika.utils.ProcessUtils;
 import org.tallison.batchlite.AbstractDirectoryProcessor;
 import org.tallison.batchlite.AbstractFileProcessor;
 import org.tallison.batchlite.CommandlineFileProcessor;
-import org.tallison.batchlite.CommandlineFileToFileProcessor;
+import org.tallison.batchlite.ConfigSrc;
 import org.tallison.batchlite.MetadataWriter;
-import org.tallison.batchlite.writer.MetadataWriterFactory;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -36,12 +34,12 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class FileCommandExample extends AbstractDirectoryProcessor {
 
-    private final MetadataWriter metadataWriter;
+    private static final int MAX_BUFFER = 10000;
     private final int numThreads;
-    public FileCommandExample(Path srcRoot, MetadataWriter metadataWriter, int numThreads) {
-        super(srcRoot);
-        this.metadataWriter = metadataWriter;
-        this.numThreads = numThreads;
+
+    public FileCommandExample(ConfigSrc config) {
+        super(config.getSrcRoot(), config.getMetadataWriter());
+        this.numThreads = config.getNumThreads();
     }
 
     @Override
@@ -55,7 +53,7 @@ public class FileCommandExample extends AbstractDirectoryProcessor {
 
     private class FileCommandProcessor extends CommandlineFileProcessor {
         public FileCommandProcessor(ArrayBlockingQueue<Path> queue, Path srcRoot,
-                                   MetadataWriter metadataWriter) {
+                                    MetadataWriter metadataWriter) {
             super(queue, srcRoot, metadataWriter);
         }
 
@@ -70,23 +68,9 @@ public class FileCommandExample extends AbstractDirectoryProcessor {
     }
 
     public static void main(String[] args) throws Exception {
-        Path srcRoot = Paths.get(args[0]);
-        String metadataWriterString = args[1];
-        int numThreads = 10;
-        if (args.length > 2) {
-            numThreads = Integer.parseInt(args[2]);
-        }
-        long start = System.currentTimeMillis();
-        MetadataWriter writer = MetadataWriterFactory.build(metadataWriterString);
-        try {
-            FileCommandExample runner = new FileCommandExample(srcRoot, writer, numThreads);
-            //runner.setMaxFiles(100);
-            runner.execute();
-        } finally {
-            writer.close();
-            long elapsed = System.currentTimeMillis()-start;
-            System.out.println("Processed "+ writer.getRecordsWritten() + " files in "+
-                    elapsed + " ms.");
-        }
+        FileCommandExample runner = new FileCommandExample(
+                ConfigSrc.build(args, MAX_BUFFER, MAX_BUFFER)
+        );
+        runner.execute();
     }
 }

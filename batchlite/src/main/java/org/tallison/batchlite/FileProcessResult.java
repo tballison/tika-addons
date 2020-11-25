@@ -63,4 +63,40 @@ public class FileProcessResult {
     public boolean isStdoutTruncated() {
         return stdoutTruncated;
     }
+
+    public void setStderr(String stderr) {
+        this.stderr = stderr;
+    }
+
+    public void setStdout(String stdout) {
+        this.stdout = stdout;
+    }
+
+    public void setExitValue(int exitValue) {
+        this.exitValue = exitValue;
+    }
+
+    public void setProcessTimeMillis(long processTimeMillis) {
+        this.processTimeMillis = processTimeMillis;
+    }
+
+    public void setTimeout(boolean timeout) {
+        isTimeout = timeout;
+    }
+
+    public void setStdoutLength(long stdoutLength) {
+        this.stdoutLength = stdoutLength;
+    }
+
+    public void setStderrLength(long stderrLength) {
+        this.stderrLength = stderrLength;
+    }
+
+    public void setStderrTruncated(boolean stderrTruncated) {
+        this.stderrTruncated = stderrTruncated;
+    }
+
+    public void setStdoutTruncated(boolean stdoutTruncated) {
+        this.stdoutTruncated = stdoutTruncated;
+    }
 }

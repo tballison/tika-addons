@@ -19,15 +19,12 @@ package org.tallison.batchlite.example;
 import org.apache.tika.utils.ProcessUtils;
 import org.tallison.batchlite.AbstractDirectoryProcessor;
 import org.tallison.batchlite.AbstractFileProcessor;
-import org.tallison.batchlite.CommandlineFileToFileProcessor;
 import org.tallison.batchlite.CommandlineStdoutToFileProcessor;
+import org.tallison.batchlite.ConfigSrcTarg;
 import org.tallison.batchlite.MetadataWriter;
-import org.tallison.batchlite.writer.MetadataWriterFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -47,14 +44,13 @@ public class PDFStdoutChecker extends AbstractDirectoryProcessor {
 
     private final String pdfcheckerRoot;
     private final Path targRoot;
-    private final MetadataWriter metadataWriter;
     private final int numThreads;
-    public PDFStdoutChecker(String pdfCheckerRoot, Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
-        super(srcRoot);
-        this.pdfcheckerRoot = pdfCheckerRoot;
-        this.targRoot = targRoot;
-        this.metadataWriter = metadataWriter;
-        this.numThreads = numThreads;
+
+    public PDFStdoutChecker(String pdfcheckerRoot, ConfigSrcTarg config) {
+        super(config.getSrcRoot(), config.getMetadataWriter());
+        this.pdfcheckerRoot = pdfcheckerRoot;
+        this.targRoot = config.getTargRoot();
+        this.numThreads = config.getNumThreads();
     }
 
     @Override
@@ -90,25 +86,11 @@ public class PDFStdoutChecker extends AbstractDirectoryProcessor {
     }
 
     public static void main(String[] args) throws Exception {
-        String pdfcheckerRoot = args[0];
-        Path srcRoot = Paths.get(args[1]);
-        Path targRoot = Paths.get(args[2]);
-        String metadataWriterString = args[3];
-        int numThreads = 10;
-        if (args.length > 4) {
-            numThreads = Integer.parseInt(args[4]);
-        }
-        long start = System.currentTimeMillis();
-        MetadataWriter metadataWriter = MetadataWriterFactory.build(metadataWriterString);
-
-        try {
-            PDFStdoutChecker runner = new PDFStdoutChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
-            //runner.setMaxFiles(100);
-            runner.execute();
-        } finally {
-            metadataWriter.close();
-        }
-        long elapsed = System.currentTimeMillis() - start;
-        System.out.println("Proccessed "+metadataWriter.getRecordsWritten() + " records in "+elapsed+ "ms");
+        String pdfCheckerRoot = args[0];
+        String[] newArgs = new String[args.length-1];
+        System.arraycopy(args, 1, newArgs, 0, newArgs.length);
+        PDFStdoutChecker runner = new PDFStdoutChecker(pdfCheckerRoot,
+                ConfigSrcTarg.build(newArgs, 10000, 10000));
+        runner.execute();
     }
 }

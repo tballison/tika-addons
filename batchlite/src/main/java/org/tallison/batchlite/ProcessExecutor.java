@@ -26,11 +26,6 @@ public class ProcessExecutor {
 
     private static final String EMPTY = "";
 
-    public static FileProcessResult execute(ProcessBuilder pb, long timeoutMillis, int maxBuffer) throws IOException {
-        return execute(pb, timeoutMillis, maxBuffer, maxBuffer);
-    }
-
-
     /**
      * This writes stdout and stderr to the FileProcessResult.
      *

@@ -22,12 +22,12 @@ import java.nio.file.Path;
 
 public class PathResultPair {
 
-    static PathResultPair POISON = new PathResultPair(null, null);
+
 
     private final String relPath;
     private final FileProcessResult result;
 
-    PathResultPair(String relPath, FileProcessResult result) {
+    public PathResultPair(String relPath, FileProcessResult result) {
         this.relPath = relPath;
         this.result = result;
     }

@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractFileProcessor implements Callable<Integer> {
 
     private static final long DEFAULT_TIMEOUT_MILLIS = 30000;
+    private static final int MAX_BUFFER = 10000;
+
     private static AtomicInteger THREAD_COUNT = new AtomicInteger();
 
     private static Logger LOGGER = LoggerFactory.getLogger(AbstractFileProcessor.class);
@@ -37,6 +39,7 @@ public abstract class AbstractFileProcessor implements Callable<Integer> {
     private final int id;
     private long timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
 
+    private long fileTimeoutMillis = DEFAULT_TIMEOUT_MILLIS;
 
     public AbstractFileProcessor(ArrayBlockingQueue<Path> queue) {
         id = THREAD_COUNT.getAndIncrement();
@@ -47,6 +50,14 @@ public abstract class AbstractFileProcessor implements Callable<Integer> {
 
     public void setTimeoutMillis(long timeoutMillis) {
         this.timeoutMillis = timeoutMillis;
+    }
+
+    public long getFileTimeoutMillis() {
+        return fileTimeoutMillis;
+    }
+
+    public void setFileTimeoutMillis(long fileTimeoutMillis) {
+        this.fileTimeoutMillis = fileTimeoutMillis;
     }
 
     @Override

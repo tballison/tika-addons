@@ -23,9 +23,9 @@ import java.nio.file.Paths;
 
 public class MetadataWriterFactory {
 
-    public static MetadataWriter build(String writerString) throws IOException {
+    public static MetadataWriter build(String writerString, int maxStdout, int maxStderr) throws IOException {
         if (writerString.startsWith("jdbc:")) {
-            return new JDBCMetadataWriter(writerString);
+            return new JDBCMetadataWriter(writerString, maxStdout, maxStderr);
         } else if (writerString.endsWith(".csv") || writerString.endsWith(".tsv")) {
             return new CSVMetadataWriter(Paths.get(writerString));
         } else {

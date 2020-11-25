@@ -16,6 +16,10 @@
  */
 package org.tallison.batchlite;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.tallison.batchlite.writer.JDBCMetadataWriter;
+
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -35,30 +39,39 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractDirectoryProcessor {
+
+    private static Logger LOGGER = LoggerFactory.getLogger(JDBCMetadataWriter.class);
+
     static Path POISON = Paths.get("");
     private static long TIMEOUT_MILLIS = 720000;
     private static int QUEUE_SIZE = 1000;
     private int maxFiles = -1;
     private int numThreads;
     protected final Path rootDir;
+    protected final MetadataWriter metadataWriter;
 
-    public AbstractDirectoryProcessor(Path rootDir) {
+    public AbstractDirectoryProcessor(Path rootDir, MetadataWriter metadataWriter) {
         this.rootDir = rootDir.toAbsolutePath();
         if (! Files.isDirectory(rootDir)) {
            throw new RuntimeException(rootDir + " does not exist");
         }
+        this.metadataWriter = metadataWriter;
     }
 
     protected Path getRootDir() {
         return rootDir;
     }
 
-    public void execute() throws SQLException {
+    public void execute() throws SQLException, IOException {
         ArrayBlockingQueue<Path> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         List<AbstractFileProcessor> processors = getProcessors(queue);
-        numThreads = processors.size()+1;
+        numThreads = processors.size()+2;
+
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         ExecutorCompletionService<Integer> executorCompletionService = new ExecutorCompletionService<>(executorService);
+
+        long start = System.currentTimeMillis();
+        executorCompletionService.submit(metadataWriter);
         executorCompletionService.submit(new DirectoryCrawler(rootDir, queue));
 
         for (int i = 0; i < processors.size(); i++) {
@@ -66,11 +79,17 @@ public abstract class AbstractDirectoryProcessor {
         }
 
         int completed = 0;
+        //this waits for all threads to finish.
+        //it assumes that the workers will finish first and then it
+        //calls shutdown on the writer, which will cause it to flush
+        //and close.
+        //If something catastrophic happens in the writer, this
+        //will stop early with a runtime exception from future.get()
         try {
             while (completed < numThreads) {
                 Future<Integer> future = null;
                 try {
-                    future = executorCompletionService.poll(1, TimeUnit.SECONDS);
+                    future = executorCompletionService.poll(60, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     break;
                 }
@@ -85,11 +104,18 @@ public abstract class AbstractDirectoryProcessor {
                         throw new RuntimeException(e);
                     }
                 }
+                if (completed == processors.size()+1) {
+                    metadataWriter.shutdown();
+                }
             }
         } finally {
             executorService.shutdown();
             executorService.shutdownNow();
         }
+        long elapsed = System.currentTimeMillis()-start;
+        LOGGER.info("Finished "+metadataWriter.getRecordsWritten() + " records in "+
+                elapsed + " ms.");
+
     }
 
     protected void setMaxFiles(int maxFiles) {

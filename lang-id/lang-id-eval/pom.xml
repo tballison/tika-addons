@@ -22,11 +22,12 @@
             <artifactId>lang-id-opennlp</artifactId>
             <version>1.19-SNAPSHOT</version>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-yalder</artifactId>
             <version>1.19-SNAPSHOT</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-optimaize</artifactId>

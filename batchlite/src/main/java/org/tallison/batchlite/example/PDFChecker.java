@@ -34,23 +34,22 @@ import java.util.concurrent.ArrayBlockingQueue;
 /**
  * This is an example of running PDFChecker on a directory of files
  * see: https://www.datalogics.com/products/pdf-tools/pdf-checker/
- *
+ * <p>
  * This currently hardcodes the use of /CheckerProfiles/everything.json.
  * This assumes that PDFChecker has been installed.
- *
+ * <p>
  * commandline example: /home/tallison/tools/pdfchecker/PDF_Checker input output pdfchecker_metadata.csv 6
  */
 public class PDFChecker extends AbstractDirectoryProcessor {
 
     private final String pdfcheckerRoot;
     private final Path targRoot;
-    private final MetadataWriter metadataWriter;
     private final int numThreads;
+
     public PDFChecker(String pdfCheckerRoot, Path srcRoot, Path targRoot, MetadataWriter metadataWriter, int numThreads) {
-        super(srcRoot);
+        super(srcRoot, metadataWriter);
         this.pdfcheckerRoot = pdfCheckerRoot;
         this.targRoot = targRoot;
-        this.metadataWriter = metadataWriter;
         this.numThreads = numThreads;
     }
 
@@ -75,9 +74,9 @@ public class PDFChecker extends AbstractDirectoryProcessor {
                 Files.createDirectories(targPath.getParent());
             }
             return new String[]{
-                    ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/pdfchecker"),
+                    ProcessUtils.escapeCommandLine(pdfcheckerRoot + "/pdfchecker"),
                     "--profile",
-                    ProcessUtils.escapeCommandLine(pdfcheckerRoot+"/CheckerProfiles/everything.json"),
+                    ProcessUtils.escapeCommandLine(pdfcheckerRoot + "/CheckerProfiles/everything.json"),
                     "--input",
                     ProcessUtils.escapeCommandLine(srcPath.toAbsolutePath().toString()),
                     "-s",
@@ -101,17 +100,13 @@ public class PDFChecker extends AbstractDirectoryProcessor {
             numThreads = Integer.parseInt(args[4]);
         }
         long start = System.currentTimeMillis();
-        MetadataWriter metadataWriter = MetadataWriterFactory.build(metadataWriterString);
+        MetadataWriter metadataWriter = MetadataWriterFactory.build(metadataWriterString, 100000, 100000);
 
-        try {
-            PDFChecker runner = new PDFChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
-            //runner.setMaxFiles(100);
-            runner.execute();
-        } finally {
-            metadataWriter.close();
-        }
+        PDFChecker runner = new PDFChecker(pdfcheckerRoot, srcRoot, targRoot, metadataWriter, numThreads);
+        //runner.setMaxFiles(100);
+        runner.execute();
         long elapsed = System.currentTimeMillis() - start;
-        System.out.println("Proccessed "+metadataWriter.getRecordsWritten() + " records in "+elapsed+ "ms");
+        System.out.println("Proccessed " + metadataWriter.getRecordsWritten() + " records in " + elapsed + "ms");
 
     }
 }

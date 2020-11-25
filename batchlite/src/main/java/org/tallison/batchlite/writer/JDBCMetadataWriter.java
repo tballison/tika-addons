@@ -16,7 +16,8 @@
  */
 package org.tallison.batchlite.writer;
 
-import org.apache.tika.io.IOExceptionWithCause;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tallison.batchlite.FileProcessResult;
 import org.tallison.batchlite.MetadataWriter;
 
@@ -25,172 +26,110 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 //e.g. /data/docs output jdbc:h2:file:/home/tallison/Desktop/h2_results:file_metadata 10
 
-public class JDBCMetadataWriter implements MetadataWriter {
+public class JDBCMetadataWriter extends MetadataWriter {
 
-    private static final long MAX_POLL_SECONDS = 600;
-    private static final int MAX_STREAM_LENGTH = 20000;
+    private static Logger LOGGER = LoggerFactory.getLogger(JDBCMetadataWriter.class);
 
+    private static final int MAX_PATH_LENGTH = 500;
+    private final boolean isPostgres;
     private final Connection connection;
     private final PreparedStatement insert;
-    private final ArrayBlockingQueue<PathResultPair> queue = new ArrayBlockingQueue<>(1000);
-    private final ExecutorService executorService;
-    private final ExecutorCompletionService<Integer> executorCompletionService;
-    private final WriterThread writerThread;
 
-    JDBCMetadataWriter(String jdbcString) throws IOException {
+
+    JDBCMetadataWriter(String jdbcString, int maxStdout, int maxStderr) throws IOException {
         int tableIndex = jdbcString.lastIndexOf(":");
         if (tableIndex < 0) {
             throw new RuntimeException("must specify table name after :");
         }
+        isPostgres = jdbcString.startsWith("jdbc:postgresql");
         String table = jdbcString.substring(tableIndex+1);
         jdbcString = jdbcString.substring(0, tableIndex);
         String sql = "insert into "+table+" values (?,?,?,?,?," +
                 "?,?,?,?,?);";
         try {
             connection = DriverManager.getConnection(jdbcString);
-            createTable(connection, table);
+            connection.setAutoCommit(false);
+            createTable(connection, table, maxStdout, maxStderr);
             insert = connection.prepareStatement(sql);
         } catch (SQLException e) {
-            throw new IOExceptionWithCause(e);
+            LOGGER.warn("problem with connection string: >"+jdbcString+"<");
+            throw new IOException(e);
         }
-        executorService = Executors.newFixedThreadPool(1);
-        executorCompletionService = new ExecutorCompletionService<>(executorService);
-        this.writerThread = new WriterThread(queue, insert);
-        executorCompletionService.submit(this.writerThread);
     }
 
-    private static void createTable(Connection connection, String table) throws SQLException {
-        String sql = "create table "+table+" ("+
-                "path varchar(5000) primary key,"+
+    private static void createTable(Connection connection, String table,
+                                    int maxStdout, int maxStderr) throws SQLException {
+        String sql = "drop table if exists "+table;
+        connection.createStatement().execute(sql);
+
+        sql = "create table "+table+" ("+
+                "path varchar("+MAX_PATH_LENGTH+") primary key,"+
                 "exit_value integer," +
                 "timeout boolean,"+
                 "process_time_ms BIGINT,"+
-                "stderr varchar("+MAX_STREAM_LENGTH+"),"+
-                "stderr_length bigint,"+
-                "stderr_truncated boolean,"+
-                "stdout varchar("+MAX_STREAM_LENGTH+"),"+
+                "stdout varchar("+maxStdout+"),"+
                 "stdout_length bigint,"+
-                "stdout_truncated boolean)";
+                "stdout_truncated boolean," +
+                "stderr varchar("+maxStderr+"),"+
+                "stderr_length bigint,"+
+                "stderr_truncated boolean)";
         connection.createStatement().execute(sql);
+        connection.commit();
     }
 
+
     @Override
-    public void write(String relPath, FileProcessResult result) throws IOException {
+    protected void write(PathResultPair pair) throws IOException {
+        int i = 0;
         try {
-            boolean offered = queue.offer(new PathResultPair(relPath, result), MAX_POLL_SECONDS, TimeUnit.SECONDS);
-            if (! offered) {
-                throw new IOExceptionWithCause(
-                        new TimeoutException("exceeded "+MAX_POLL_SECONDS
-                                + " seconds"));
+            FileProcessResult result = pair.getResult();
+
+            insert.setString(++i, clean(pair.getRelPath(), MAX_PATH_LENGTH));
+            insert.setInt(++i, result.getExitValue());
+            insert.setBoolean(++i, result.isTimeout());
+            insert.setLong(++i, result.getProcessTimeMillis());
+            insert.setString(++i, clean(result.getStdout(), getMaxStdoutBuffer()));
+            insert.setLong(++i, result.getStdoutLength());
+            insert.setBoolean(++i, result.isStdoutTruncated());
+            insert.setString(++i, clean(result.getStderr(), getMaxStderrBuffer()));
+            insert.setLong(++i, result.getStderrLength());
+            insert.setBoolean(++i, result.isStderrTruncated());
+            insert.addBatch();
+
+            if (getRecordsWritten() % 1000 == 0) {
+                insert.executeBatch();
+                connection.commit();
             }
-        } catch (InterruptedException e) {
-            throw new IOExceptionWithCause(e);
+        } catch (SQLException e) {
+            throw new IOException(e);
         }
     }
 
-    @Override
-    public int getRecordsWritten() {
-        return writerThread.getRecordsWritten();
+    private String clean(String s, int maxLength) {
+        if (s == null) {
+            return "";
+        }
+        if (isPostgres) {
+            s = s.replaceAll("\u0000", " ");
+        }
+        if (s.length() > maxLength) {
+            s = s.substring(0, maxLength);
+        }
+        return s;
     }
 
     @Override
-    public void close() throws IOException {
-        try {
-            boolean offered = queue.offer(PathResultPair.POISON, MAX_POLL_SECONDS, TimeUnit.SECONDS);
-            if (! offered) {
-                throw new IOExceptionWithCause(
-                        new TimeoutException("exceeded "+MAX_POLL_SECONDS
-                                + " seconds"));
-            }
-        } catch (InterruptedException e) {
-            throw new IOExceptionWithCause(e);
-        }
-        Future<Integer> future = null;
-        try {
-            future = executorCompletionService.poll(MAX_POLL_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new IOExceptionWithCause(e);
-        }
-        if (future == null) {
-            throw new IOExceptionWithCause(
-                    new TimeoutException("exceeded "+MAX_POLL_SECONDS
-            + " seconds"));
-        }
-        try {
-            future.get();
-        } catch (InterruptedException|ExecutionException e) {
-            throw new IOExceptionWithCause(e);
-        } finally {
-            executorService.shutdownNow();
-        }
+    protected void close() throws IOException {
         try {
             insert.executeBatch();
             insert.close();
             connection.commit();
             connection.close();
         } catch (SQLException e) {
-            throw new IOExceptionWithCause(e);
-        }
-    }
-
-    private static class WriterThread implements Callable<Integer> {
-        private ArrayBlockingQueue<PathResultPair> queue;
-        private final PreparedStatement insert;
-        private int recordsWritten = 0;
-
-        WriterThread(ArrayBlockingQueue<PathResultPair> queue, PreparedStatement insert) {
-            this.queue = queue;
-            this.insert = insert;
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            while (true) {
-                PathResultPair pair = queue.poll(MAX_POLL_SECONDS, TimeUnit.SECONDS);
-                if (pair == null) {
-                    throw new TimeoutException("waited longer than " + MAX_POLL_SECONDS
-                            + " seconds");
-                }
-                if (pair == PathResultPair.POISON) {
-                    return 1;
-                }
-                int i = 0;
-                FileProcessResult result = pair.getResult();
-                insert.setString(++i, pair.getRelPath());
-                insert.setInt(++i, result.getExitValue());
-                insert.setBoolean(++i, result.isTimeout());
-                insert.setLong(++i, result.getProcessTimeMillis());
-                insert.setString(++i, result.getStderr());
-                insert.setLong(++i, result.getStderrLength());
-                insert.setBoolean(++i, result.isStderrTruncated());
-                insert.setString(++i, result.getStdout());
-                insert.setLong(++i, result.getStdoutLength());
-                insert.setBoolean(++i, result.isStdoutTruncated());
-                insert.addBatch();
-                recordsWritten++;
-                if (recordsWritten % 1000 == 0) {
-                    System.out.println("processed: "+recordsWritten);
-                }
-                if (recordsWritten % 10000 == 0) {
-                    insert.executeBatch();
-                }
-            }
-        }
-
-        int getRecordsWritten() {
-            return recordsWritten;
+            throw new IOException(e);
         }
     }
 }

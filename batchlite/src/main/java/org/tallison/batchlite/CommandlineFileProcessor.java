@@ -21,10 +21,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public abstract class CommandlineFileProcessor extends FileProcessor {
-    private static final long DEFAULT_TIMEOUT_MILLIS = 120000;
-    private static final int DEFAULT_MAX_BUFFER = 100000;
-    private long timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
-    private int maxBuffer = DEFAULT_MAX_BUFFER;
+
     public CommandlineFileProcessor(ArrayBlockingQueue<Path> queue,
                                     Path srcRoot,
                                     MetadataWriter metadataWriter) {
@@ -36,7 +33,8 @@ public abstract class CommandlineFileProcessor extends FileProcessor {
                                     Path srcPath, MetadataWriter metadataWriter) throws IOException {
         String[] commandline = getCommandLine(srcPath);
         FileProcessResult r = ProcessExecutor.execute(new ProcessBuilder(commandline),
-                timeoutMillis, maxBuffer);
+                getFileTimeoutMillis(), metadataWriter.getMaxStdoutBuffer(),
+                metadataWriter.getMaxStderrBuffer());
         metadataWriter.write(relPath, r);
      }
 
