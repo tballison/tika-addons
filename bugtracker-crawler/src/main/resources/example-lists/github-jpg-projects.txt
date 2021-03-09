@@ -1,0 +1,13 @@
+https://github.com/libjpeg-turbo/libjpeg-turbo
+https://github.com/haraldk/TwelveMonkeys
+https://github.com/google/guetzli
+https://github.com/mozilla/mozjpeg
+https://github.com/tjko/jpegoptim
+https://github.com/lovell/sharp
+https://github.com/libvips/libvips
+https://github.com/dropbox/lepton
+https://github.com/SixLabors/ImageSharp
+https://github.com/drewnoakes/metadata-extractor
+https://github.com/contentful-labs/Concorde
+https://github.com/spatie/image-optimizer
+https://github.com/danielgtaylor/jpeg-archive
