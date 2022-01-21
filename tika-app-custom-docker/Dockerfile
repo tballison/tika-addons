@@ -9,4 +9,5 @@ COPY my-tika-config.xml /tika-bin/my-tika-config.xml
 #ENTRYPOINT ["java","-cp","/tika-bin/*", "MyTikaCLI", "/tika-bin/my-tika-config.xml"]
 
 #e.g.
-#docker run -d -p 9998:9998
+#build . -t tika-app-custom-docker
+#docker run -v /home/tallison/Intellij/tika-1.x/tika-parsers/src/test/resources/test-documents/:/data -v `pwd`:/output tika-app-custom-docker java -jar /tika-bin/tika-app-custom-docker.jar /tika-bin/my-tika-config.xml /data/testWORD.doc /output/testWORD.xhtml
