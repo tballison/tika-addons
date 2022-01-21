@@ -15,6 +15,8 @@ import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.ToXMLContentHandler;
 
 public class MyTikaCLI {
@@ -30,6 +32,7 @@ public class MyTikaCLI {
             ContentHandler handler = new ToXMLContentHandler(os, "UTF-8");
             ParseContext pc = new ParseContext();
             EmbeddedDocumentExtractor ex = new ParsingEmbeddedDocumentExtractor(pc);
+            pc.set(Parser.class, parser);
             pc.set(EmbeddedDocumentExtractor.class, ex);
             parser.parse(is, handler, metadata, pc);
         }

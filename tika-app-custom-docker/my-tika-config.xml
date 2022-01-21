@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <properties>
-  <detectors>
+  <!--<detectors>
     <detector class="org.apache.tika.detect.OverrideDetector"/>
     <detector class="org.gagravarr.tika.OggDetector"/>
     <detector class="org.apache.tika.detect.apple.BPListDetector"/>
@@ -11,8 +11,8 @@
     </detector>
     <detector class="org.apache.tika.detect.ole.MiscOLEDetector"/>
     <detector class="org.apache.tika.detect.zip.DefaultZipContainerDetector"/>
-    <!-- <detector class="org.apache.tika.parser.pkg.ZipContainerDetector"/>
-    <detector class="org.gagravarr.tika.OggDetector"/> -->
+    < ! - - <detector class="org.apache.tika.parser.pkg.ZipContainerDetector"/>
+    <detector class="org.gagravarr.tika.OggDetector"/> - - >
     <detector class="org.apache.tika.mime.MimeTypes"/>
-  </detectors>
+  </detectors> -->
 </properties>

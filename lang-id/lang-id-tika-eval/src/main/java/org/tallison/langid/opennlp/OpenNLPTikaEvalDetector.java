@@ -73,7 +73,7 @@ public class OpenNLPTikaEvalDetector implements LangDetector {
                 EmojiCharSequenceNormalizer.getInstance(),
                 TikaUrlCharSequenceNormalizer.getInstance(),
                 TwitterCharSequenceNormalizer.getInstance(),
-                //AlphaOnlySequenceNormalizer.getInstance(),
+                AlphaOnlySequenceNormalizer.getInstance(),
                 NumberCharSequenceNormalizer.getInstance(),
                 ShrinkCharSequenceNormalizer.getInstance()
         };
@@ -101,8 +101,6 @@ public class OpenNLPTikaEvalDetector implements LangDetector {
     }
 
     private static class AlphaOnlySequenceNormalizer implements CharSequenceNormalizer {
-        //use this custom copy/paste of opennlo to avoid long, long hang with mail_regex
-        //TIKA-2777
         private static final Pattern REGEX = Pattern.compile("(\\p{IsAlphabetic}+)");
         private static final AlphaOnlySequenceNormalizer INSTANCE =
                 new AlphaOnlySequenceNormalizer();
