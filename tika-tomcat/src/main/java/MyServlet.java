@@ -21,10 +21,13 @@ import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.CompositeDetector;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.extractor.EmbeddedDocumentExtractor;
+import org.apache.tika.extractor.ParsingEmbeddedDocumentExtractor;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.ToTextContentHandler;
 import org.apache.tika.sax.ToXMLContentHandler;
 
@@ -39,21 +42,28 @@ public class MyServlet extends HttpServlet {
         response.setContentType("text/html");
         response.setCharacterEncoding("UTF-8");
 
-        Path tmpFile = Files.createTempFile("my-tmp", "");
         TikaConfig config = null;
         try (InputStream is = this.getClass().getResourceAsStream("/my-tika-config.xml")) {
             config = new TikaConfig(is);
         } catch (TikaException|SAXException e) {
             throw new RuntimeException(e);
         }
+
         AutoDetectParser parser = new AutoDetectParser(config);
+
+        ParseContext pc = new ParseContext();
+        EmbeddedDocumentExtractor ex = new ParsingEmbeddedDocumentExtractor(pc);
+        pc.set(EmbeddedDocumentExtractor.class, ex);
+        pc.set(Parser.class, parser);
+
 
         ContentHandler contentHandler = new ToTextContentHandler();
         String txt = "";
+        Path tmpFile = Files.createTempFile("my-tmp", "");
         try {
             Files.copy(request.getInputStream(), tmpFile, StandardCopyOption.REPLACE_EXISTING);
             try (InputStream tis = TikaInputStream.get(tmpFile)) {
-                parser.parse(tis, contentHandler, new Metadata(), new ParseContext());
+                parser.parse(tis, contentHandler, new Metadata(), pc);
             } catch (TikaException e) {
                 e.printStackTrace();
             } catch (SAXException e) {
