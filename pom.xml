@@ -49,6 +49,7 @@
       <module>batchlite</module>
       <module>xmp-scraper</module>
     <module>tika-app-custom-docker</module>
+    <module>tika-tomcat</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
