@@ -50,6 +50,7 @@
       <module>xmp-scraper</module>
     <module>tika-app-custom-docker</module>
     <module>tika-tomcat</module>
+    <module>tika-package-examples</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
