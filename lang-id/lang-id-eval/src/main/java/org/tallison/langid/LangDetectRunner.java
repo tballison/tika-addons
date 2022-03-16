@@ -60,7 +60,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.tallison.langid.opennlp.OpenNLPLangDetector;
 import org.tallison.langid.opennlp.OpenNLPTikaEvalDetector;
 import org.tallison.langid.optimaize.OptimaizeLangDetector;
-import org.tallison.langid.yalder.YalderDetector;
+//import org.tallison.langid.yalder.YalderDetector;
 
 public class LangDetectRunner {
 
@@ -82,12 +82,12 @@ public class LangDetectRunner {
                 BufferedWriter aggregatedResultsWriter = Files.newBufferedWriter(Paths.get(args[2]),
                         StandardCharsets.UTF_8)) {
 
-            YalderDetector yalderDetector = new YalderDetector();
-            yalderDetector.stopEarly(true);
+//            YalderDetector yalderDetector = new YalderDetector();
+  //          yalderDetector.stopEarly(true);
             //ProbingOpenNLPLangDetector probing = new ProbingOpenNLPLangDetector();
             //probing.setNormalizer(new NoopNormalizer());
             LangDetector[] detectors = new LangDetector[]{
-                    yalderDetector,
+    //                yalderDetector,
                     new OptimaizeLangDetector(),
                     new OpenNLPLangDetector(),
                     new OpenNLPTikaEvalDetector()

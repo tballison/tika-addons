@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,7 @@ public class TrainTestSplit {
     private double devtestPercentage = 0.1;
     private double testPercentage = 0.2;
     private int sentsPerSample = 5;
-    private int maxSamplesPerLanguage = 5000;
+    private int maxSamplesPerLanguage = 10000;
 
     Map<String, BufferedWriter> writers = new HashMap<>();
     //train devtest <lang, sampleCount>
@@ -51,20 +52,17 @@ public class TrainTestSplit {
 
     Random r = new Random();
 
-    public TrainTestSplit(Path outputDir) throws IOException  {
+    public TrainTestSplit(Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
-        writers.put(TRAIN,
-                Files.newBufferedWriter(outputDir.resolve(TRAIN +
-                                "_"+ maxSamplesPerLanguage+".txt"),
+        writers.put(TRAIN, Files.newBufferedWriter(
+                outputDir.resolve(TRAIN + "_" + maxSamplesPerLanguage + ".txt"),
                 StandardCharsets.UTF_8));
-        writers.put(TEST,
-                Files.newBufferedWriter(outputDir.resolve(TEST +
-                                "_"+ maxSamplesPerLanguage+".txt"),
-                        StandardCharsets.UTF_8));
-        writers.put(DEVTEST,
-                Files.newBufferedWriter(outputDir.resolve(DEVTEST +
-                                "_"+maxSamplesPerLanguage+".txt"),
-                        StandardCharsets.UTF_8));
+        writers.put(TEST, Files.newBufferedWriter(
+                outputDir.resolve(TEST + "_" + maxSamplesPerLanguage + ".txt"),
+                StandardCharsets.UTF_8));
+        writers.put(DEVTEST, Files.newBufferedWriter(
+                outputDir.resolve(DEVTEST + "_" + maxSamplesPerLanguage + ".txt"),
+                StandardCharsets.UTF_8));
     }
 
     public static void main(String[] args) throws Exception {
@@ -79,13 +77,25 @@ public class TrainTestSplit {
     }
 
     private void execute(OpenNLPLangDetector ld, Path leipzigDir) throws Exception {
+        Map<String, List<File>> langs = new HashMap<>();
         for (File f : leipzigDir.toFile().listFiles()) {
             if (f.isDirectory()) {
                 continue;
             }
             String n = f.getName();
-            String lang = n.substring(0,3);
-            processFile(ld, lang, f);
+            String lang = n.substring(0, 3);
+            List<File> files = langs.get(lang);
+            if (files == null) {
+                files = new ArrayList<>();
+            }
+
+            files.add(f);
+            langs.put(lang, files);
+        }
+        List<String> langKeys = new ArrayList<>(langs.keySet());
+        Collections.sort(langKeys);
+        for (String lang : langKeys) {
+            processLang(ld, lang, langs.get(lang));
         }
         for (Writer w : writers.values()) {
             w.flush();
@@ -93,26 +103,37 @@ public class TrainTestSplit {
         }
     }
 
-    private void processFile(OpenNLPLangDetector ld, String lang, File f) throws Exception {
+    private void processLang(OpenNLPLangDetector ld, String lang, List<File> files)
+            throws Exception {
         if (seenEnough(lang)) {
             return;
         }
-
-        List<String> lines = FileUtils.readLines(f, StandardCharsets.UTF_8);
+        List<String> lines = new ArrayList<>();
+        for (File f : files) {
+            lines.addAll(FileUtils.readLines(f, StandardCharsets.UTF_8));
+        }
         Collections.shuffle(lines);
-        for (int i = 0; i < lines.size(); i += sentsPerSample) {
-            StringBuilder sb = new StringBuilder();
-            for (int j = i; j < i+sentsPerSample && j < lines.size(); j++) {
+        System.out.println(lang + " " + lines.size());
+        int added = 0;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            line = line.substring(line.indexOf("\t") + 1);
+            if (line.length() > 50) {
                 sb.append(" ");
-                String line = lines.get(j);
-                line = line.substring(line.indexOf("\t")+1);
                 sb.append(line);
+                added++;
             }
-            writeSample(lang, sb.toString());
+            if (added == sentsPerSample) {
+                writeSample(lang, sb.toString());
+                added = 0;
+                sb.setLength(0);
+            }
             if (seenEnough(lang)) {
                 return;
             }
         }
+        writeSample(lang, sb.toString());
     }
 
     private void writeSample(String lang, String sample) throws IOException {
@@ -122,21 +143,21 @@ public class TrainTestSplit {
         sample = prepSample(lang, sample);
         if (val < trainingPercentage) {
             if (seenEnough(TRAIN, lang)) {
-                System.err.println("seen enough "+TRAIN + " "+lang);
+//                System.err.println("seen enough " + TRAIN + " " + lang);
                 return;
             }
             writers.get(TRAIN).write(sample);
             increment(TRAIN, lang);
-        } else if (val < trainingPercentage+devtestPercentage) {
+        } else if (val < trainingPercentage + devtestPercentage) {
             if (seenEnough(DEVTEST, lang)) {
-                System.err.println("seen enough "+DEVTEST + " "+lang);
+  //              System.err.println("seen enough " + DEVTEST + " " + lang);
                 return;
             }
             writers.get(DEVTEST).write(sample);
             increment(DEVTEST, lang);
         } else {
             if (seenEnough(TEST, lang)) {
-                System.err.println("seen enough "+TEST + " "+lang);
+    //            System.err.println("seen enough " + TEST + " " + lang);
                 return;
             }
             writers.get(TEST).write(sample);
@@ -154,14 +175,12 @@ public class TrainTestSplit {
         if (sampleCount == null) {
             counts.put(lang, 1);
         } else {
-            counts.put(lang, sampleCount+1);
+            counts.put(lang, sampleCount + 1);
         }
     }
 
     private boolean seenEnough(String lang) {
-        return seenEnough(TRAIN, lang)
-                && seenEnough(TEST, lang)
-                && seenEnough(DEVTEST, lang);
+        return seenEnough(TRAIN, lang) && seenEnough(TEST, lang) && seenEnough(DEVTEST, lang);
     }
 
     private boolean seenEnough(String split, String lang) {
@@ -181,6 +200,6 @@ public class TrainTestSplit {
 
     private String prepSample(String lang, String sample) {
         sample = sample.replaceAll("\r\n\t", " ");
-        return lang+"\t"+sample+"\n";
+        return lang + "\t" + sample + "\n";
     }
 }
