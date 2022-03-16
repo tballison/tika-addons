@@ -1,0 +1,453 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html lang="en-US">   <head>
+    <!-- # block head (placeholder in theme.html) -->
+        <!-- # block head (content inherited from layout.html) -->
+    <title>
+      #9261 (FSB version 5)
+          – FFmpeg
+    </title>
+    <!--[if IE]><script>
+        if (/^#__msie303:/.test(window.location.hash))
+        window.location.replace(window.location.hash.replace(/^#__msie303:/, '#'));
+        </script><![endif]-->
+    <link rel="search" href="/search">
+    <link rel="prev" href="/ticket/9260" title="Ticket #9260">
+    <link rel="last" href="/ticket/9555" title="Ticket #9555">
+    <link rel="help" href="/wiki/TracGuide">
+    <link rel="alternate" class="rss" href="/ticket/9261?format=rss" title="RSS Feed" type="application/rss+xml">
+    <link rel="alternate" class="csv" href="/ticket/9261?format=csv" title="Comma-delimited Text" type="text/csv">
+    <link rel="alternate" class="tab" href="/ticket/9261?format=tab" title="Tab-delimited Text" type="text/tab-separated-values">
+    <link rel="next" href="/ticket/9262" title="Ticket #9262">
+    <link rel="start" href="/wiki">
+    <link rel="stylesheet" href="/chrome/common/css/trac.css" type="text/css">
+    <link rel="stylesheet" href="/chrome/common/css/ticket.css" type="text/css">
+    <link rel="stylesheet" href="/chrome/common/css/jquery-ui/jquery-ui.css" type="text/css">
+    <link rel="stylesheet" href="/chrome/common/css/jquery-ui-addons.css" type="text/css">
+    <link rel="stylesheet" href="/chrome/vote/css/tracvote.css" type="text/css">
+    <link rel="icon" href="/chrome/common/trac.ico" type="image/x-icon">
+    <link rel="first" href="/ticket/1" title="Ticket #1">
+    <noscript>
+      <style>
+        .trac-noscript { display: none !important }
+      </style>     </noscript>
+    <link type="application/opensearchdescription+xml" rel="search" href="/search/opensearch" title="Search FFmpeg">
+    <script>
+      var form_token="32a580a206198d764cd41f9a";
+      var jquery_ui={"ampm":true,"date_format":"M d, yy","day_names":{"abbreviated":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"narrow":["S","M","T","W","T","F","S"],"wide":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]},"default_timezone":120,"first_week_day":0,"month_names":{"abbreviated":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"wide":["January","February","March","April","May","June","July","August","September","October","November","December"]},"period_names":{"am":["AM","AM"],"pm":["PM","PM"]},"show_timezone":false,"time_format":"h:mm:ss TT","timepicker_separator":", ","timezone_iso8601":false,"timezone_list":null};
+      var old_values={"analyzed":"0","blockedby":"","blocking":"","cc":"","changetime":"2021-05-24T20:50:27Z","component":"avformat","description":"http://ffmpeg.org/pipermail/ffmpeg-devel/2021-May/280601.html\r\n{{{\r\n$ ffmpeg -i rain1.fsb \r\nffmpeg version N-102605-g4c705a2775 Copyright (c) 2000-2021 the FFmpeg developers\r\n  built with gcc 10 (SUSE Linux)\r\n  configuration: --enable-gpl\r\n  libavutil      57.  0.100 / 57.  0.100\r\n  libavcodec     59.  1.100 / 59.  1.100\r\n  libavformat    59.  2.101 / 59.  2.101\r\n  libavdevice    59.  0.100 / 59.  0.100\r\n  libavfilter     8.  0.101 /  8.  0.101\r\n  libswscale      6.  0.100 /  6.  0.100\r\n  libswresample   4.  0.100 /  4.  0.100\r\n  libpostproc    56.  0.100 / 56.  0.100\r\n[fsb @ 0x3ec4580] version 5 is not implemented. Update your FFmpeg version to the newest one from Git. If the problem still occurs, it means that your file has a feature which has not been implemented.\r\n[fsb @ 0x3ec4580] If you want to help, upload a sample of this file to https://streams.videolan.org/upload/ and contact the ffmpeg-devel mailing list. (ffmpeg-devel@ffmpeg.org)\r\nrain1.fsb: Not yet implemented in FFmpeg, patches welcome\r\n}}}","id":9261,"keywords":"fsb","owner":"","priority":"wish","reporter":"cehoyos","reproduced":"0","resolution":"","status":"new","summary":"FSB version 5","time":"2021-05-24T20:50:27Z","type":"enhancement","version":"git-master"};
+      var tags={"autocomplete_field":"field-keywords","help_href":null,"help_new_window":false,"keywords":["\"keep","/","3.3.2","32-bit","404","AAC","AMF","APE","API","ARIB","AVI","AVS2","Audiotoolbox","CHUNK","CP1252","DASH","DTS","FFREPORT","FFV1","FLAC","FPE","H264","HDS","HLS","ICY","ID3","ID3v2","IMX","Intel","LCW2","LEAD","Lyra","METADATA","MP3","MQA","MXF","Metadata","NUT","NVDEC","NVENC","NewTek","Non-monotonous","Null","Nvidia","OPUS","PGS","QSV","RTMP","RTP","RTSP","ReplayGain","SAP","SBR","SCTE-35","SDK","SEI","SIGSEGV","SVQ1","TARGETDURATION","TIF","VAAPI","VBK","Version","Vulkan","Widevine","Windows","WindowsGraphicsCapture","XAVC-L","ZyGo","a12v","aac","aax","abort","ac3","acodec","acrossfade","adelay","adpcm","aea","aes","afade","alimiter","alive\"","alpha","als","alsa","altivec","amf","amovie","amr","amrnb","amrp","analyzeduration","android","anim","ansi","anullsrc","apple","aptx","aresample","areverse","arm","art","asf","asp","aspect","ass","async","atempo","atrac","atrac3","atrac3p","audio","audio/video","audiotoolbox","auth","auto","autodetect","av1","av_get_token","av_interleaved_write_frame","avc","avfoundation","avi","avid","avio","avio_close_dir","avio_open_dir","avio_skip","avisynth","bk2","blackmagic","blend","blocks","blueiris","blur","bluray","bmp","books","bounce","bounty","boxx","bpg","buffer","bxy2","cache","caf","callback","capture","carbon","cavs","cc","cdxl","centos","chan","channel_layout","channellayout","channels","chapters","chromakey","clang","cllc","clv","cmyk","codecpar","coder","colon","color","compact","compile","concat","concatenate","configuration","convert","convertion","cook","cookie","copy","copyts","cover","coverrect","crash","creation","creation_time","cropdetect","cropping","csf","csv","cuda","cursor","curve","curves","cuvid","d3d11va","dash","dashencoder","dca","deadlock","debian","decimate","decklink","decoding","default","delay","demuxer","dereference","deshake","desync","detelecine","device","dicom","direct3d","directio","directshow","discontinuity","disposition","dithering","divx","djgpp","dnxhd","doc","docs","donation","double","downmix","dplii","dpx","drawtext","drm","drop","ds2","dshow","dss","dtPA","dtmt","dtnt","dts","dual","duplicate","duration","dvb_subtitle","dvb_teletext","dvbsub","dvd","dvdnav","dvdsub","dvvideo","dwarf","dwt53","dxva2","eac3","easy","ebur128","editlist","edl","edts","electronicarts","encoder","encrypt","error","examples","exif","exit","exr","facebook","faststart","fate","fateclient","feature-request","fedora","ffmetadata","ffmpeg","ffmpeg-vaapi","ffplay","ffpreset","ffprobe","ffreport","ffrprobe","ffserver","fft","ffv1","fieldhint","file","filter","filter_complex","filtering","filters","flac","flic","flif","flv","force_key_frames","fps","frame_num","framerate","framesync","fsb","g726","g729","gamma","gapless","gaussian","gbrp","gdigrab","geq","gif","glob","gmp4","gpu","gradfun","granule","gsoc","h.264","h261","h263","h264","h264_amf","h264_mmal","h264_omx","h264_qsv","h264_vaapi","h265","haiku","hdcd","hdr","heif","help","hevc","hevc_videotoolbox","histogram","hls","htmlsubtitles","http","https","huge","hv60","hw_decode","hwaccel","hwcontext_qsv","hwdownload","hwupload","hwupload_qsv","iXML","iac","id","id3","id3v1","id3v2","idet","iec61883","iff","image2","images","indeo3","indeo4","input","intel","interlaced","interrupt","ios","ismindex","itsoffset","j2k","jack","join","jpegls","klfs","klv","kmsgrab","kodi","lame","language","latm","leak","libaom","libaom-av1","libass","libav","libcdio","libfdk-aac","libmp3lame","libndi","libopenjpeg","libopenmpt","libopus","librtmp","libspeex","libsrt","libvidstab","libvmaf","libvorbis","libvpx","libx264","libx265","libxvid","libzvbi","links","ljpeg","log","logging","login","loglevel","loss","lossless","loudness","loudnorm","lowres","lra","lrc","lto","lut3d","lxf","lyrics","m2v","m3u8","m4b","m4v","map","matrox","mcdeint","mdec","mediacodec","mediafoundation","metadata","mingw","mint","mips","misplaced","mitchell","mjpeg","mka","mkv","mlp","mlv","mmal","mms","mmsh","mmst","mosaic","mouse","mov","mov_text","movie","mp1","mp2","mp3","mp4","mp4a","mpc","mpeg2video","mpeg4","mpeg4ssp","mpegps","mpegts","mpegtsraw","mpegvideo","mpfilter","mpjpeg","mpjpegdec","mpv","msmpeg4","mss","mss2","msvc","msvideo1","multi-client","multicast","multiple","muxer","mvc","mxf","nasm","network","noise","npp","nsv","null","nullsrc","nut","nvdec","nvenc","nvidia","ocr","offset","ogg","oma","omx","on2avc","oom","openCL","openal","opencl","opencv","opengl","opus","opw","osx","output","outreachy","overlay","packet","pad","paf","pal8","palettegen","paletteuse","pan","pass","password","pat","pattern_type","pause","pcm_dvd","pcm_s24le","perspective","pgssub","pix_fmt","pixfmt","pmf","pmp","pmt","png","pointer","pos","postprocessing","ppc","premiere","priming","probe","progressive","prompeg","prores","proxy","psf2","psnr","pts","pulldown","pullup","pulseaudio","qclp","qcp","qdm2","qdraw","qmv","qscale","qsv","qtkit","quick","r3d","ra28","race","range","rawvideo","rdft","real","reconnect","regression","remux","report","resolv","resources","rfc6381","rhel","rhozet","riff","rotate","roundup","rtm","rtmp","rtmpe","rtmps","rtp","rtsp","rv20","rv30","rv40","rw_timeout","s302m","sanm","sbg","sbr","scale","scale_cuda","scale_qsv","scaling","schannel","screen","screencasting","sdp","security","seek","seeking","segment","separator","server","settings","sfd","sharpen","shorten","shortest","shoutcast","showcqt","showspectrumpic","showwaves","showwavespic","sighup","sigint","signature","sigpipe","sipr","size","slide","slideshow","smaf","smartblur","smush","sn40","snow","sofdec","solaris","spdif","srt","srtdec","srtp","ssegment","ssim","stack","start","stream_loop","streaming","stsd","studio","sub","subrip","subtitles","subviewer","sup","svq1","svq3","swf","swresample","swscale","sync","synchronous","tak","targa","tcp","tee","texi","tff","thd","theora","tif","tiff","time","timecode","timed_id3","timestamp","tint","tiny_psnr","trac","track","tracks","transparent","truehd","truncation","tsan","tta","twitch","ubsan","ubuntu","udp","unicode","unix-socket","unsharp","unsupported","unwind","url","usm","uspp","ustream","utf16","v210","v360","v4l2","v4l2loopback","v4l2m2m","va-api","vaapi","variance","vbr","vbv","vc1","vcodec","vda","vdom","vdpau","vfr","vfwcap","via","video","video4linux2","videolan","videotoolbox","vimeo","visual","vobsub","vorbis","voxware","vp3","vp5","vp6","vp7","vp8","vp9","vs2015","vsx","vsync","vtt","vulkan","wav","waveform","wavpack","webcam","webm","webp","webvtt","wiki","wiki-redirect","win","win10","win32","windows","winrt","wmalossless","wmapro","wmav2","wmavoice","wmserver","wmv2","wmv3","wtv","x11grab","x264","x265","x32","xerror","xfade","xml","xmv","xsub","xvba","xvid","xyz","yadif","youtube","yuv2rgb","zip","zmq","zoompan","zvr","\u7f16\u7801\u5668\u521d\u59cb\u5316"],"match_from_start":"","separator":" "};
+      var auto_preview_timeout=2.0;
+      var changes=[{"author":"cehoyos","comment":"","comment_history":{"0":{"author":"cehoyos","comment":"","date":1621889463347618}},"date":1621889463347618,"fields":{"attachment":{"label":"Attachment","new":"rain1.fsb","old":"","rendered":"\"\u2192 \\u003cspan class=\\\"trac-field-new\\\"\\u003erain1.fsb\\u003c/span\\u003e\""}},"permanent":0}];
+      var comments_prefs={"comments_order":"oldest","show_comments":"true","show_prop_changes":"true"};
+    </script>
+    <script src="/chrome/common/js/jquery.js"></script>
+    <script src="/chrome/common/js/babel.js"></script>
+    <script src="/chrome/common/js/trac.js"></script>
+    <script src="/chrome/common/js/search.js"></script>
+    <script src="/chrome/common/js/folding.js"></script>
+    <script src="/chrome/common/js/wikitoolbar.js"></script>
+    <script src="/chrome/common/js/resizer.js"></script>
+    <script src="/chrome/common/js/auto_preview.js"></script>
+    <script src="/chrome/common/js/jquery-ui.js"></script>
+    <script src="/chrome/common/js/jquery-ui-addons.js"></script>
+    <script src="/chrome/common/js/jquery-ui-i18n.js"></script>
+    <script src="/chrome/tags/js/autocomplete_tags.js"></script>
+    <script>
+      jQuery(function($) {
+        $(".trac-autofocus").focus();
+        $(".trac-target-new").attr("target", "_blank");
+        if ($.ui) { /* is jquery-ui added? */
+          $(".trac-datepicker:not([readonly])")
+            .prop("autocomplete", "off").datepicker();
+          // Input current date when today is pressed.
+          var _goToToday = $.datepicker._gotoToday;
+          $.datepicker._gotoToday = function(id) {
+            _goToToday.call(this, id);
+            this._selectDate(id)
+          };
+          $(".trac-datetimepicker:not([readonly])")
+            .prop("autocomplete", "off").datetimepicker();
+          $("#main").addClass("trac-nodatetimehint");
+        }
+        $(".trac-disable").disableSubmit(".trac-disable-determinant");
+        setTimeout(function() { $(".trac-scroll").scrollToTop() }, 1);
+        $(".trac-disable-on-submit").disableOnSubmit();
+      });
+    </script>
+    <!--   # include 'site_head.html' (layout.html) -->
+    <!--   end of site_head.html -->
+    <!-- # endblock head (content inherited from layout.html) -->
+    <script src="/chrome/common/js/threaded_comments.js"></script>
+    <script>
+      jQuery(function($) {
+        $("div.description").find("h1,h2,h3,h4,h5,h6")
+          .addAnchor(_("Link to this section"));
+        $(".foldable").enableFolding(false, true);
+        $("#attachments").toggleClass("collapsed");
+        $("#trac-up-attachments").click(function () {
+          $("#attachments").removeClass("collapsed");
+          return true;
+        });
+        $("#modify").parent().toggleClass("collapsed");
+        $(".trac-topnav a").click(function() {
+          $("#modify").parent().removeClass("collapsed");
+        });
+        function setRevertHandler() {
+          $("button.trac-revert").click(function() {
+            var div = $("div", this);
+            var field_name = div[0].id.substr(7);
+            var field_value = div.text();
+            var input = $("#propertyform *[name=field_" + field_name + "]");
+            if (input.length > 0) {
+              if (input.filter("input[type=radio]").length > 0) {
+                input.val([field_value]);
+              } else if (input.filter("input[type=checkbox]").length > 0) {
+                input.val(field_value == "1" ? [field_value] : []);
+              } else {
+                input.val(field_value);
+              }
+            } else { // Special case for CC checkbox
+              input = $("#propertyform input[name=cc_update]").val([]);
+            }
+            input.change();
+            // Remove the revert button
+            if ($(this).closest("tbody").children("tr").length === 1)
+              $(this).closest(".trac-change-panel").remove();
+            else
+              $(this).closest("tr").remove();
+            return false;
+          });
+        }
+        setRevertHandler();
+        var comment_focused = false;
+        $("#comment").focus(function() { comment_focused = true; })
+                     .blur(function() { comment_focused = false; });
+        $("#propertyform").autoSubmit({preview: '1'}, function(data, reply) {
+          var items = $(reply);
+          // Update ticket box
+          $("#ticket").replaceWith(items.filter('#ticket'));
+          // Replaces content of #changelog, without recreating it
+          $("#changelog").empty().append(items.filter("#changelog").contents());
+          // Apply comments order and "Show" preferences
+          applyCommentsOrder(
+            $('#prefs input[name="trac-comments-order"]:checked').val());
+          // Show warnings
+          var new_changes = $("#changelog .trac-new");
+          $("#trac-edit-warning").toggle(new_changes.length != 0);
+          if (new_changes.length != 0)
+            $("#changelog").parent().show().removeClass("collapsed");
+          $("#trac-preview-warning").remove();
+          $("#trac-edit-warning").before(items.filter('#trac-preview-warning'));
+          // Update view time
+          $("#propertyform input[name='view_time']")
+            .replaceWith(items.filter("input[name='view_time']"));
+          // Update preview
+          var preview = $("#ticketchange")
+            .html(items.filter('#preview').children());
+          var show_preview = preview.children().length != 0;
+          $("#ticketchange").toggle(show_preview);
+          setRevertHandler();
+          // Execute scripts to load stylesheets
+          items.filter("script").appendTo("head");
+        }, "#ticketchange .trac-loading");
+        $("#trac-comment-editor")
+            .autoSubmit({preview_comment: '1'}, function(data, reply) {
+          var comment = $("#trac-comment-editor")
+            .next("div.comment").html(reply);
+          comment.toggle(comment.children().length != 0);
+        }, "#changelog .trac-loading");
+      });
+    </script>
+    <!-- # endblock head (placeholder in theme.html) -->
+  </head>
+  <body>
+    <!-- # block body (content inherited from theme.html) -->
+    <!--   # include 'site_header.html' (theme.html) -->
+    <!--   end of site_header.html -->
+    <div id="banner">
+      <div id="header">
+        <a id="logo" href="https://ffmpeg.org">
+          <img alt="FFmpeg" src="/ffmpeg-logo.png"></a>
+      </div>
+      <form id="search" action="/search" method="get">
+        <div>
+          <label for="proj-search">Search:</label>
+          <input type="text" id="proj-search" name="q" size="18" value="">
+          <input type="submit" value="Search">
+        </div>
+      </form>
+          <div id="metanav" class="nav">
+      <ul><li class="first"><a href="/login">Login</a></li><li><a href="/prefs">Preferences</a></li><li><a href="/wiki/TracGuide">Help/Guide</a></li><li><a href="/about">About Trac</a></li><li><a href="/register">Register</a></li><li class="last"><a href="/reset_password">Forgot your password?</a></li></ul>
+    </div>
+    </div>
+        <div id="mainnav" class="nav">
+      <ul><li class="first"><a href="/wiki">Wiki</a></li><li><a href="/timeline">Timeline</a></li><li class="active"><a href="/report">View Tickets</a></li><li><a href="/search">Search</a></li><li class="last"><a accesskey="T" href="/tags">Tags</a></li></ul>
+    </div>
+    <div id="main">
+      <div id="ctxtnav" class="nav">
+        <h2>Context Navigation</h2>
+        <ul>
+          <li class="first"><span id="vote" title="Vote count"><img alt="Up-vote" src="/chrome/vote/aupgray.png"><span id="votes">+0</span><img alt="Down-vote" src="/chrome/vote/adowngray.png"></span></li>
+          <li><span>← <a class="prev" href="/ticket/9260" title="Ticket #9260">Previous Ticket</a></span></li>
+          <li class="last"><span><a class="next" href="/ticket/9262" title="Ticket #9262">Next Ticket</a> →</span></li>
+        </ul>
+        <hr>
+      </div>
+      <!-- # block content (placeholder in theme.html) -->
+    <div id="content" class="ticket">
+<div id="ticket">
+  <div id="ticketbox" class="trac-content">
+    <div class="date">
+      <p>Opened <a class="timeline" href="/timeline?from=2021-05-24T23%3A50%3A27%2B03%3A00&amp;precision=second" title="See timeline at May 24, 2021, 11:50:27 PM">7 months ago</a></p>
+    </div>
+    <h2>
+      <a href="/ticket/9261" class="trac-id">#9261</a>
+      <span class="trac-status">
+        <a href="/query?status=new">new</a>
+      </span>
+      <span class="trac-type">
+        <a href="/query?status=!closed&amp;type=enhancement">enhancement</a>
+      </span>
+    </h2>
+    <h1 id="trac-ticket-title" class="searchable">
+      <span class="summary">FSB version 5</span>
+    </h1>
+    <table class="properties">
+      <tr>
+        <th id="h_reporter">Reported by:</th>
+        <td class="searchable" headers="h_reporter"><a class="trac-author" href="/query?status=!closed&amp;reporter=cehoyos">Carl Eugen Hoyos</a></td>
+        <th id="h_owner" class="missing">Owned by:</th>
+        <td headers="h_owner"></td>
+      </tr>
+      <tr>
+        <th id="h_priority">
+          Priority:
+        </th>
+        <td headers="h_priority">
+          <a href="/query?status=!closed&amp;priority=wish">wish</a>
+        </td>
+        <th id="h_component">
+          Component:
+        </th>
+        <td headers="h_component">
+          <a href="/query?status=!closed&amp;component=avformat">avformat</a>
+        </td>
+      </tr>
+      <tr>
+        <th id="h_version">
+          Version:
+        </th>
+        <td headers="h_version">
+          <a href="/query?status=!closed&amp;version=git-master">git-master</a>
+        </td>
+        <th id="h_keywords">
+          Keywords:
+        </th>
+        <td class="searchable" headers="h_keywords">
+          <a href="/query?status=!closed&amp;keywords=~fsb">fsb</a>
+        </td>
+      </tr>
+      <tr>
+        <th class="missing" id="h_cc">
+          Cc:
+        </th>
+        <td class="searchable" headers="h_cc">
+        </td>
+        <th class="missing" id="h_blockedby">
+          Blocked By:
+        </th>
+        <td headers="h_blockedby">
+        </td>
+      </tr>
+      <tr>
+        <th class="missing" id="h_blocking">
+          Blocking:
+        </th>
+        <td headers="h_blocking">
+        </td>
+        <th id="h_reproduced">
+          Reproduced by developer:
+        </th>
+        <td headers="h_reproduced">
+          <a href="/query?status=!closed&amp;reproduced=0">no</a>
+        </td>
+      </tr>
+      <tr>
+        <th id="h_analyzed">
+          Analyzed by developer:
+        </th>
+        <td headers="h_analyzed">
+          <a href="/query?status=!closed&amp;analyzed=0">no</a>
+        </td>
+        <th class="missing">
+        </th>
+        <td>
+        </td>
+      </tr>
+    </table>
+    <div class="description">
+      <h2 id="comment:description">Description
+      </h2>
+      <script>
+        // float left elements like inlinebuttons will be presented in
+        // right-to-left order, i.e. those added before #addreply will
+        // be on the right, those added after will be on the left
+        function insertNearReplyToDescription(content, side) {
+          if (side === 'right') {
+            $("#ticket .description #addreply").before(content);
+          } else if (side === 'rightmost') {
+            $("#ticket .description > h2").after(content);
+          } else if (side === 'leftmost') {
+            $("#ticket .description").children(".searchable, br")
+              .before(content);
+          } else { // 'left'
+            $("#ticket .description #addreply").after(content);
+          }
+        }
+      </script>
+      <div class="searchable">
+        <p>
+<a class="ext-link" href="http://ffmpeg.org/pipermail/ffmpeg-devel/2021-May/280601.html"><span class="icon">​</span>http://ffmpeg.org/pipermail/ffmpeg-devel/2021-May/280601.html</a><br>
+</p>
+<pre class="wiki">$ ffmpeg -i rain1.fsb 
+ffmpeg version N-102605-g4c705a2775 Copyright (c) 2000-2021 the FFmpeg developers
+  built with gcc 10 (SUSE Linux)
+  configuration: --enable-gpl
+  libavutil      57.  0.100 / 57.  0.100
+  libavcodec     59.  1.100 / 59.  1.100
+  libavformat    59.  2.101 / 59.  2.101
+  libavdevice    59.  0.100 / 59.  0.100
+  libavfilter     8.  0.101 /  8.  0.101
+  libswscale      6.  0.100 /  6.  0.100
+  libswresample   4.  0.100 /  4.  0.100
+  libpostproc    56.  0.100 / 56.  0.100
+[fsb @ 0x3ec4580] version 5 is not implemented. Update your FFmpeg version to the newest one from Git. If the problem still occurs, it means that your file has a feature which has not been implemented.
+[fsb @ 0x3ec4580] If you want to help, upload a sample of this file to https://streams.videolan.org/upload/ and contact the ffmpeg-devel mailing list. (ffmpeg-devel@ffmpeg.org)
+rain1.fsb: Not yet implemented in FFmpeg, patches welcome
+</pre>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="attachments">
+  <h3 class="foldable">
+    Attachments
+    <span class="trac-count">(1)</span></h3>
+  <div class="attachments">
+    <dl class="attachments">
+      <dt><a href="/attachment/ticket/9261/rain1.fsb" title="View attachment">rain1.fsb</a><a href="/raw-attachment/ticket/9261/rain1.fsb" class="trac-rawlink" title="Download">​</a>
+ (<span title="35808 bytes">35.0 KB</span>
+) - added by <span class="trac-author">Carl Eugen Hoyos</span> <a class="timeline" href="/timeline?from=2021-05-24T23%3A51%3A03%2B03%3A00&amp;precision=second" title="See timeline at May 24, 2021, 11:51:03 PM">7 months ago</a>.</dt>
+    </dl>
+    <p>
+  Download all attachments as:
+  <a rel="nofollow" href="/zip-attachment/ticket/9261/">.zip</a>
+</p>
+  </div>
+</div>
+      <div>
+        <div class="trac-noscript" style="position: relative">
+          <form id="prefs" method="get" action="/prefs" style="position: absolute; right: 0">
+            <div id="trac-comments-order">
+              <input type="radio" id="trac-comments-oldest" name="trac-comments-order" value="oldest" checked>
+              <label for="trac-comments-oldest">Oldest first</label>
+              <input type="radio" id="trac-comments-newest" name="trac-comments-order" value="newest">
+              <label for="trac-comments-newest">Newest first</label>
+              <span id="trac-threaded-toggle" style="display: none">
+                <input type="radio" id="trac-comments-threaded" name="trac-comments-order" value="threaded">
+                <label for="trac-comments-threaded">Threaded</label>
+              </span>
+            </div>
+            <div>
+              <input id="trac-show-comments-toggle" type="checkbox" checked>
+              <label for="trac-show-comments-toggle">Show comments</label>
+              <input id="trac-show-property-changes-toggle" type="checkbox">
+              <label for="trac-show-property-changes-toggle">
+                Show property changes</label>
+            </div>
+          </form>
+        </div>
+        <h3 class="foldable">
+          Change History
+          <span class="trac-count">(1)</span></h3>
+        <div id="changelog">
+          <div class="change">
+<h3 class="change">
+  <span class="threading">
+  </span>
+  by <span class="trac-author">Carl Eugen Hoyos</span>, <a class="timeline" href="/timeline?from=2021-05-24T23%3A51%3A03%2B03%3A00&amp;precision=second" title="See timeline at May 24, 2021, 11:51:03 PM">7 months ago</a>
+</h3>
+<div class="trac-change-panel">
+  <div class="trac-ticket-buttons">
+  </div>
+  <table class="changes">
+    <tr class="trac-field-attachment">
+      <th class="trac-field-attachment">Attachment:</th>
+      <td>
+        <a href="/attachment/ticket/9261/rain1.fsb"><em>rain1.fsb</em></a><a href="/raw-attachment/ticket/9261/rain1.fsb" title="Download" class="trac-rawlink">​</a>
+ added      </td>
+    </tr>
+  </table>
+</div>
+          </div>
+          <script>
+            // inlinebuttons in ticket change are presented in
+            // left-to-right order, i.e. those added before
+            // #reply-to-comment-n will be on its left, those added
+            // after will be on its right
+            function insertNearReplyToComment(num, content, side) {
+              var $replyto = $("#reply-to-comment-" + num);
+              if (side === 'right') {
+                $replyto.after(content);
+              } else if (side === 'rightmost') {
+                $replyto.parent().append(content);
+              } else if (side === 'leftmost') {
+                $replyto.parent().prepend(content);
+              } else { // 'left'
+                $replyto.before(content);
+              }
+            }
+          </script>
+        </div>
+      </div>
+<div class="trac-help">
+  <strong>Note:</strong>
+ See   <a href="/wiki/TracTickets">TracTickets</a>
+ for help on using tickets.
+</div>
+    </div>
+        <!-- # block content (content inherited from layout.html) -->
+    <div id="altlinks">
+      <h3>Download in other formats:</h3>
+      <ul>
+        <li class="first">
+          <a rel="nofollow" href="/ticket/9261?format=rss" class="rss">
+            RSS Feed</a>
+        </li>
+        <li class="">
+          <a rel="nofollow" href="/ticket/9261?format=csv" class="csv">
+            Comma-delimited Text</a>
+        </li>
+        <li class="last">
+          <a rel="nofollow" href="/ticket/9261?format=tab" class="tab">
+            Tab-delimited Text</a>
+        </li>
+      </ul>
+    </div>
+    <!-- # endblock content (content inherited from layout.html) -->
+      <!-- # endblock content (placeholder in theme.html) -->
+    </div>
+    <div id="footer"><hr>
+      <a id="tracpowered" href="https://trac.edgewall.org/"><img src="/chrome/common/trac_logo_mini.png" height="30" width="107" alt="Trac Powered"></a>
+      <p class="left">
+Powered by         <a href="/about"><strong>Trac 1.4.2</strong></a>
+        <br>
+ By         <a href="http://www.edgewall.org/">Edgewall Software</a>
+.      </p>
+      <p class="right">Visit the Trac open source project at<br><a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a></p>
+    </div>
+    <!--   # include 'site_footer.html' (theme.html) -->
+    <!--   end of site_footer.html -->
+    <!-- # endblock body (content inherited from theme.html) -->
+  </body> </html>

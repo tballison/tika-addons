@@ -19,68 +19,102 @@ package org.tallison.langid.opennlp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import opennlp.tools.langdetect.Language;
-import opennlp.tools.langdetect.LanguageDetector;
 import opennlp.tools.langdetect.LanguageDetectorModel;
 import opennlp.tools.util.normalizer.CharSequenceNormalizer;
 import opennlp.tools.util.normalizer.EmojiCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.NumberCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.ShrinkCharSequenceNormalizer;
 import opennlp.tools.util.normalizer.TwitterCharSequenceNormalizer;
+
 import org.tallison.langid.LangDetectResult;
 import org.tallison.langid.LangDetector;
 
+/**
+ * <p>
+ * This is based on OpenNLP's language detector.  However,
+ * we've built our own ProbingLanguageDetector and our own language
+ * models from an extended Leipzig corpus.
+ * </p>
+ * <p>
+ * Going forward, we plan to fold these improvements into OpenNLP
+ * and remove our own custom code.
+ * </p>
+ */
+public class TikaOpenNLPDetector implements LangDetector {
 
-public class OpenNLPTikaEvalDetector implements LangDetector {
-    LanguageDetector detector;
-    Set<String> supportedLangs;
-    public OpenNLPTikaEvalDetector() throws IOException {
-        try (InputStream is = this.getClass().getResourceAsStream("/model-20210411.bin")) {
-            detector = new ProbingLanguageDetector(new LanguageDetectorModel(is), getNormalizers());
+    static LanguageDetectorModel LANG_MODEL;
+
+    static void loadBuiltInModels() throws IOException {
+        try (InputStream is = TikaOpenNLPDetector.class.getResourceAsStream(
+                "/model-20210401.bin"
+        )) {
+            LANG_MODEL = new LanguageDetectorModel(is);
         }
-        Set<String> tmp = new HashSet<>();
-        for (String lang : detector.getSupportedLanguages()) {
-            tmp.add(lang);
-        }
-        supportedLangs = Collections.unmodifiableSet(tmp);
-        System.out.println("I support: " + supportedLangs.size());
     }
-
-    @Override
-    public Set<String> getSupportedLangs() {
-        return supportedLangs;
-    }
-
-    @Override
-    public List<LangDetectResult> detect(String s) {
-        Language[] langs = detector.predictLanguages(s);
-        List<LangDetectResult> results = new ArrayList<>();
-        for (int i = 0; i < langs.length; i++) {
-            results.add(new LangDetectResult(langs[i].getLang(), langs[i].getConfidence()));
+    static {
+        try {
+            loadBuiltInModels();
+        } catch (IOException e) {
+            throw new RuntimeException("Can't find built-in language models");
         }
-        return results;
     }
 
     private static CharSequenceNormalizer[] getNormalizers() {
         return new CharSequenceNormalizer[]{
-                EmojiCharSequenceNormalizer.getInstance(),
                 TikaUrlCharSequenceNormalizer.getInstance(),
+                AlphaIdeographSequenceNormalizer.getInstance(),
+                EmojiCharSequenceNormalizer.getInstance(),
                 TwitterCharSequenceNormalizer.getInstance(),
-                AlphaOnlySequenceNormalizer.getInstance(),
                 NumberCharSequenceNormalizer.getInstance(),
                 ShrinkCharSequenceNormalizer.getInstance()
         };
     }
 
+    private final ProbingLanguageDetector detector = new ProbingLanguageDetector(LANG_MODEL, getNormalizers());
+    private final StringBuilder buffer = new StringBuilder();
+
+    public TikaOpenNLPDetector() {
+
+    }
+
+
+    public void setMaxLength(int maxLength) {
+        detector.setMaxLength(maxLength);
+    }
+
+    public String[] getSupportedLanguages() {
+        return detector.getSupportedLanguages();
+    }
+
+
+    @Override
+    public Set<String> getSupportedLangs() {
+        String[] langs = detector.getSupportedLanguages();
+        Set<String> ret = new HashSet<>();
+        for (String l : langs) {
+            ret.add(l);
+        }
+        return ret;
+    }
+
+    @Override
+    public List<LangDetectResult> detect(String s) {
+        Language[] langs = detector.predictLanguages(s);
+        List<LangDetectResult> ret = new ArrayList<>();
+        for (Language lang : langs) {
+            ret.add(new LangDetectResult(lang.getLang(), lang.getConfidence()));
+        }
+        return ret;
+    }
+
     private static class TikaUrlCharSequenceNormalizer implements CharSequenceNormalizer {
-        //use this custom copy/paste of opennlo to avoid long, long hang with mail_regex
+        //use this custom copy/paste of opennlp to avoid long, long hang with mail_regex
         //TIKA-2777
         private static final Pattern URL_REGEX = Pattern.compile("https?://[-_.?&~;+=/#0-9A-Za-z]{10,10000}");
         private static final Pattern MAIL_REGEX = Pattern.compile("[-_.0-9A-Za-z]{1,100}@[-_0-9A-Za-z]{1,100}[-_.0-9A-Za-z]{1,100}");
@@ -100,26 +134,20 @@ public class OpenNLPTikaEvalDetector implements LangDetector {
         }
     }
 
-    private static class AlphaOnlySequenceNormalizer implements CharSequenceNormalizer {
-        private static final Pattern REGEX = Pattern.compile("(\\p{IsAlphabetic}+)");
-        private static final AlphaOnlySequenceNormalizer INSTANCE =
-                new AlphaOnlySequenceNormalizer();
+    private static class AlphaIdeographSequenceNormalizer implements CharSequenceNormalizer {
+        private static final Pattern REGEX = Pattern.compile("[^\\p{IsAlphabetic}\\p{IsIdeographic}]+");
+        private static final AlphaIdeographSequenceNormalizer INSTANCE = new AlphaIdeographSequenceNormalizer();
 
-        public static AlphaOnlySequenceNormalizer getInstance() {
+        public static AlphaIdeographSequenceNormalizer getInstance() {
             return INSTANCE;
         }
 
-        private AlphaOnlySequenceNormalizer() {
+        private AlphaIdeographSequenceNormalizer() {
         }
 
         @Override
         public CharSequence normalize(CharSequence charSequence) {
-            StringBuilder sb = new StringBuilder();
-            Matcher m = REGEX.matcher(charSequence);
-            while (m.find()) {
-                sb.append(m.group(1)).append(" ");
-            }
-            return sb.toString();
+            return REGEX.matcher(charSequence).replaceAll(" ");
         }
     }
 }

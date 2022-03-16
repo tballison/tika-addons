@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Ignore;
 import org.junit.Test;
 import org.tallison.bugs.Step2ExtensionFixer;
@@ -27,5 +29,14 @@ public class ExtensionFixerTest {
                 "/home/tallison/data/docs/"
         };
         Step2ExtensionFixer.main(args);
+    }
+
+    @Test
+    public void periodOnly() throws Exception {
+        String fileName = "something.";
+        if (fileName.endsWith(".")) {
+            fileName = fileName.substring(0, fileName.length()-1);
+        }
+        assertEquals("something", fileName);
     }
 }

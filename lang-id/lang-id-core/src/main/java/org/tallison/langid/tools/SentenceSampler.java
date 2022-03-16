@@ -38,7 +38,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.io.FileUtils;
 
 public class SentenceSampler {
-    Matcher langMatcher = Pattern.compile("^([-a-z]+)_([a-z]+)").matcher("");
+    Matcher langMatcher = Pattern.compile("^([-a-z]+)(_([a-z]+))?").matcher("");
     Random r = new Random();
     enum RAND_MODE {
         BTWN_0_1000000,
