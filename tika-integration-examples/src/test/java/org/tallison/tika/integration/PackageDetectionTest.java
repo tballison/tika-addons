@@ -1,22 +1,21 @@
+package org.tallison.tika.integration;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import org.apache.tika.Tika;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 
-public class TestPackageDetection {
+public class PackageDetectionTest {
 
     @Test
     public void testOOXMLDetection() throws Exception {
-        Path p = Paths.get("/Users/allison/Desktop/test.docx");
         Tika tika = new Tika();
         String fileName = "Testworddocx.docx";
         testStream(tika.getDetector(), fileName, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
