@@ -69,28 +69,32 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <!-- current version is 3.11.1? - tika 2.2.1 uses version 3.8.1, 2.3.0 uses 3.9.0 -->
-        <version>3.9.0</version>
+        <!-- current version is 3.10.1? - tika 2.2.1 uses version 3.8.1, 2.3.0 uses 3.9.0 -->
+        <version>3.10.1</version>
         <configuration>
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
         </configuration>
       </plugin>
       <plugin>
+        <!-- 3.2.0, 3.1.0 3.0.2 3.0.1 3.0.0 2.7, 2.6, 2.5, 2.4.3 -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.2</version>
-        <!--        <configuration>
-                <nonFilteredFileExtensions>
-                  <nonFilteredFileExtension>docx</nonFilteredFileExtension>
-                  <nonFilteredFileExtension>pdf</nonFilteredFileExtension>
-                </nonFilteredFileExtensions>
-                </configuration>-->
+        <version>3.2.0</version>
+<!--        <configuration>
+          <nonFilteredFileExtensions>
+            <nonFilteredFileExtension>docx</nonFilteredFileExtension>
+            <nonFilteredFileExtension>pdf</nonFilteredFileExtension>
+          </nonFilteredFileExtensions>
+        </configuration> -->
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.0.0-M5</version>
+        <configuration>
+          <argLine>-Dfile.encoding=UTF-8</argLine>
+        </configuration>
       </plugin>
     </plugins>
   </build>
