@@ -1,19 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.tallison.tika.rendering;
 
 import java.io.Closeable;
@@ -33,11 +17,11 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.utils.FileProcessResult;
 import org.apache.tika.utils.ProcessUtils;
 
-public class MutoolRenderer implements Renderer {
+public class PopplerCairoRenderer implements Renderer {
 
     @Override
-    public RenderResults render(InputStream is, ParseContext parseContext) throws IOException,
-            TikaException {
+    public RenderResults render(InputStream is, ParseContext parseContext)
+            throws IOException, TikaException {
         TikaInputStream tis = TikaInputStream.get(is);
         TemporaryResources tmp = new TemporaryResources();
         Path dir = Files.createTempDirectory("tika-render-");
@@ -55,13 +39,12 @@ public class MutoolRenderer implements Renderer {
         // This would also allow us to run on a single page at a time if that's of any interest
 
         String[] args = new String[] {
-                "mutool",
-                "convert",
-                "-O colorspace=gray",
-                "-o",
+                "pdftocairo",
+                "-png",
+                "-gray",
+                ProcessUtils.escapeCommandLine(tis.getPath().toAbsolutePath().toString()),
                 ProcessUtils.escapeCommandLine(dir.toAbsolutePath().toString()+"/"+
-                        "tika-mutool-render-%d.png"),
-                ProcessUtils.escapeCommandLine(tis.getPath().toAbsolutePath().toString())
+                        "tika-cairo-render"),
 
         };
         ProcessBuilder builder = new ProcessBuilder();
@@ -73,7 +56,7 @@ public class MutoolRenderer implements Renderer {
         }
         RenderResults results = new RenderResults(tmp);
         //TODO -- fix this
-        Matcher m = Pattern.compile("tika-mutool-render-(\\d+)\\.png").matcher("");
+        Matcher m = Pattern.compile("tika-cairo-render-(\\d+)\\.png").matcher("");
         for (File f : dir.toFile().listFiles()) {
             String n = f.getName();
             if (m.reset(n).find()) {

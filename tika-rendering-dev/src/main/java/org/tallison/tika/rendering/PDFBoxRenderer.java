@@ -28,38 +28,34 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
-import org.xml.sax.SAXException;
 
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TemporaryResources;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.Property;
-import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.ParseContext;
-import org.apache.tika.sax.BodyContentHandler;
-import org.apache.tika.sax.EmbeddedContentHandler;
-import org.apache.tika.utils.ExceptionUtils;
 
 public class PDFBoxRenderer implements Renderer {
-    public static Property PAGE_INDEX = Property.externalInteger("renderer:pageIndex");
+    public static Property PAGE_NUMBER = Property.externalInteger("renderer:page_number");
 
     @Override
     public RenderResults render(InputStream is, ParseContext parseContext) throws IOException, TikaException {
         TikaInputStream tis = TikaInputStream.get(is);
-        PDDocument pdDocument = PDDocument.load(tis.getPath().toFile());
-
-        PDFRenderer renderer = new PDFRenderer(pdDocument);
         RenderResults results = new RenderResults(new TemporaryResources());
+        try (PDDocument pdDocument = PDDocument.load(tis.getPath().toFile())) {
 
-        for (int i = 0; i < pdDocument.getNumberOfPages(); i++) {
-            try {
-                Metadata m = new Metadata();
-                m.set(PAGE_INDEX, i);
-                Path imagePath = renderPage(renderer, i);
-                results.add(new RenderResult(imagePath, m));
-            } catch (IOException e) {
-                //do something useful
+            PDFRenderer renderer = new PDFRenderer(pdDocument);
+
+            for (int i = 0; i < pdDocument.getNumberOfPages(); i++) {
+                try {
+                    Metadata m = new Metadata();
+                    m.set(PAGE_NUMBER, i + 1);
+                    Path imagePath = renderPage(renderer, i);
+                    results.add(new RenderResult(imagePath, m));
+                } catch (IOException e) {
+                    //do something useful
+                }
             }
         }
         return results;
@@ -71,10 +67,16 @@ public class PDFBoxRenderer implements Renderer {
         int dpi = 300;
         Path tmpFile = Files.createTempFile("tika-rendering-", "-" + (pageIndex + 1) + ".png");
         try {
+            long start = System.currentTimeMillis();
             BufferedImage image = renderer.renderImageWithDPI(pageIndex, dpi, ImageType.GRAY);
+            long elapsed = System.currentTimeMillis() - start;
+            start = System.currentTimeMillis();
             try (OutputStream os = Files.newOutputStream(tmpFile)) {
-                ImageIOUtil.writeImage(image, "png", os, dpi);
+                ImageIOUtil.writeImage(image, "tiff", os, dpi);
             }
+            long elapsedWrite = System.currentTimeMillis()-start;
+            //System.out.println("elapsed to render: " + elapsed + " elapsed to write " +
+            // elapsedWrite);
         } catch (SecurityException e) {
             //throw SecurityExceptions immediately
             throw e;
