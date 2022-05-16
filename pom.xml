@@ -54,6 +54,7 @@
     <module>tika-tomcat</module>
     <module>tika-package-examples</module>
     <module>tika-rendering-dev</module>
+    <module>DWGReadDev</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
