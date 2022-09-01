@@ -17,6 +17,7 @@
     <java.version>11</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <tika.version>2.4.2-SNAPSHOT</tika.version>
+    <log4j2.version>2.18.0</log4j2.version>
   </properties>
   <dependencies>
     <dependency>
@@ -28,6 +29,16 @@
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-serialization</artifactId>
       <version>${tika.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j2.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <version>${log4j2.version}</version>
     </dependency>
   </dependencies>
   <build>

@@ -103,6 +103,7 @@ public class ExtractEmitterCLI {
         }
 
         private void process(FetchEmitTuple tuple) throws TikaException, IOException {
+            LOGGER.info("processing " + tuple.getFetchKey().getFetchKey());
             List<Metadata> metadataList;
             Metadata metadata = new Metadata();
             try (Reader reader =
@@ -114,7 +115,14 @@ public class ExtractEmitterCLI {
             for (Metadata m : metadataList) {
                 metadataFilter.filter(m);
             }
-            emitter.emit(tuple.getEmitKey().getEmitKey(), metadataList);
+            //this stinks -- need to find a better way
+            //of figuring out if we need to strip the .json
+            String emitKey = tuple.getEmitKey().getEmitKey();
+            int i = emitKey.lastIndexOf(".");
+            if (i > -1) {
+                emitKey = emitKey.substring(0, i);
+            }
+            emitter.emit(emitKey, metadataList);
         }
     }
 }
