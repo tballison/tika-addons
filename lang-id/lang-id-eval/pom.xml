@@ -5,7 +5,7 @@
     <parent>
         <artifactId>lang-id</artifactId>
         <groupId>org.tallison</groupId>
-        <version>1.19-SNAPSHOT</version>
+        <version>0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,28 +15,28 @@
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-core</artifactId>
-            <version>1.19-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-opennlp</artifactId>
-            <version>1.19-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
         <!--
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-yalder</artifactId>
-            <version>1.19-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>-->
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-optimaize</artifactId>
-            <version>1.19-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.tallison</groupId>
             <artifactId>lang-id-tika-eval</artifactId>
-            <version>1.19-SNAPSHOT</version>
+            <version>0.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

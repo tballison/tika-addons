@@ -19,13 +19,14 @@
   under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.tallison</groupId>
     <artifactId>tika-addons-parent</artifactId>
-    <version>1.19-SNAPSHOT</version>
+    <version>0.1-SNAPSHOT</version>
     <relativePath>tika-addons-parent/pom.xml</relativePath>
   </parent>
 
@@ -35,26 +36,27 @@
 
   <modules>
     <module>tika-addons-parent</module>
-      <module>eval-addons</module>
-      <module>zip-dumper</module>
-      <module>lang-id</module>
-      <module>tika-eval-solrj</module>
-      <module>bugtracker-crawler</module>
+    <module>eval-addons</module>
+    <module>zip-dumper</module>
+    <module>lang-id</module>
+    <module>tika-eval-solrj</module>
+    <module>bugtracker-crawler</module>
     <module>solr-tika-integration</module>
     <module>tika-cli-client</module>
-      <module>file-id</module>
-<!--    <module>droid-wrapper</module> -->
+    <module>file-id</module>
+    <!--    <module>droid-wrapper</module> -->
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
-      <module>pdftotext</module>
-      <module>batchlite</module>
+    <module>pdftotext</module>
+    <module>batchlite</module>
     <module>tika-integration-examples</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
-      <module>xmp-scraper</module>
+    <module>xmp-scraper</module>
     <module>tika-app-custom-docker</module>
     <module>tika-tomcat</module>
     <module>tika-package-examples</module>
     <module>tika-rendering-dev</module>
     <module>DWGReadDev</module>
+    <module>extract-emitter</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 
