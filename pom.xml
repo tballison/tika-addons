@@ -57,6 +57,7 @@
     <module>tika-rendering-dev</module>
     <module>DWGReadDev</module>
     <module>extract-emitter</module>
+    <module>tika-parser-dumps</module>
     <!--    <module>pdfbox18-shaded-integration-test</module>-->
   </modules>
 

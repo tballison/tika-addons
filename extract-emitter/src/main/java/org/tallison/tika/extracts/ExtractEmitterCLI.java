@@ -2,11 +2,12 @@ package org.tallison.tika.extracts;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
@@ -14,16 +15,20 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.filter.MetadataFilter;
 import org.apache.tika.metadata.serialization.JsonMetadataList;
 import org.apache.tika.pipes.FetchEmitTuple;
+import org.apache.tika.pipes.emitter.EmitData;
+import org.apache.tika.pipes.emitter.EmitKey;
 import org.apache.tika.pipes.emitter.Emitter;
 import org.apache.tika.pipes.emitter.EmitterManager;
 import org.apache.tika.pipes.fetcher.Fetcher;
@@ -42,6 +47,7 @@ import org.apache.tika.pipes.pipesiterator.PipesIterator;
  */
 public class ExtractEmitterCLI {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExtractEmitterCLI.class);
+    private static final int MAX_CACHE_SIZE = 100;
 
     public static void main(String[] args) throws Exception {
         Path tikaConfig = Paths.get(args[0]);
@@ -53,6 +59,7 @@ public class ExtractEmitterCLI {
         ExecutorCompletionService<Long> executorCompletionService =
                 new ExecutorCompletionService<>(executorService);
         ArrayBlockingQueue<FetchEmitTuple> queue = new ArrayBlockingQueue<>(10000);
+
         executorCompletionService.submit(new CallablePipesIterator(
                 PipesIterator.build(tikaConfig), queue));
 
@@ -73,6 +80,7 @@ public class ExtractEmitterCLI {
     }
 
     private static class ExtractWorker implements Callable<Long> {
+        private final static AtomicLong COUNTER = new AtomicLong(0);
         private final ArrayBlockingQueue<FetchEmitTuple> queue;
         private final MetadataFilter metadataFilter;
         private final Fetcher fetcher;
@@ -87,42 +95,80 @@ public class ExtractEmitterCLI {
 
         @Override
         public Long call() throws Exception {
+            List<EmitData> emitData = new ArrayList<>();
             while (true) {
                 //blocking
+                long start = System.currentTimeMillis();
                 FetchEmitTuple tuple = queue.take();
+                long elapsed = System.currentTimeMillis() - start;
+                LOGGER.debug("took {}ms to get a tuple from the queue", elapsed);
+
                 if (tuple == PipesIterator.COMPLETED_SEMAPHORE) {
                     queue.put(PipesIterator.COMPLETED_SEMAPHORE);
+                    emitter.emit(emitData);
+                    emitData.clear();
                     return 1l;
                 }
                 try {
-                    process(tuple);
+                    process(tuple, emitData);
+                    long processed = COUNTER.incrementAndGet();
+                    if (processed % 100 == 0) {
+                        LOGGER.info("processed {} files", processed);
+                    }
+                    if (emitData.size() >= MAX_CACHE_SIZE) {
+                        start = System.currentTimeMillis();
+                        emitter.emit(emitData);
+                        elapsed = System.currentTimeMillis() - start;
+                        LOGGER.debug("took {}ms to emit {}", elapsed, emitData.size());
+                        emitData.clear();
+                    }
                 } catch (TikaException | IOException e) {
                     LOGGER.warn("problem with " + tuple.getId(), e);
                 }
             }
         }
 
-        private void process(FetchEmitTuple tuple) throws TikaException, IOException {
-            LOGGER.info("processing " + tuple.getFetchKey().getFetchKey());
+        private void process(FetchEmitTuple tuple, List<EmitData> emitData) throws TikaException,
+                IOException {
+            long start = System.currentTimeMillis();
+            LOGGER.debug("processing " + tuple.getFetchKey().getFetchKey());
             List<Metadata> metadataList;
             Metadata metadata = new Metadata();
-            try (Reader reader =
-                         new BufferedReader(new InputStreamReader(
-                                 fetcher.fetch(tuple.getFetchKey().getFetchKey(), metadata),
-                                 StandardCharsets.UTF_8))) {
-                metadataList = JsonMetadataList.fromJson(reader);
+            try(TikaInputStream tikaInputStream =
+                    (TikaInputStream) fetcher.fetch(tuple.getFetchKey().getFetchKey(),
+                    metadata)) {
+                long elapsed = System.currentTimeMillis() - start;
+
+                LOGGER.debug("took {}ms to fetch tikaInputStream", elapsed);
+
+                try (Reader reader = Files.newBufferedReader(tikaInputStream.getPath(),
+                        StandardCharsets.UTF_8)) {
+                    elapsed = System.currentTimeMillis() - start;
+                    LOGGER.debug("took {}ms to open reader", elapsed);
+
+                    metadataList = JsonMetadataList.fromJson(reader);
+                    elapsed = System.currentTimeMillis() - start;
+                    LOGGER.debug("took {}ms to download and parse", elapsed);
+                }
             }
+
             for (Metadata m : metadataList) {
                 metadataFilter.filter(m);
             }
+            long elapsed = System.currentTimeMillis() - start;
+            LOGGER.debug("took {}ms to filter", elapsed);
             //this stinks -- need to find a better way
             //of figuring out if we need to strip the .json
             String emitKey = tuple.getEmitKey().getEmitKey();
-            int i = emitKey.lastIndexOf(".");
-            if (i > -1) {
-                emitKey = emitKey.substring(0, i);
+            if (emitKey.endsWith(".json")) {
+                int i = emitKey.lastIndexOf(".json");
+                if (i > -1) {
+                    emitKey = emitKey.substring(0, i);
+                }
             }
-            emitter.emit(emitKey, metadataList);
+            emitData.add(new EmitData(
+                    new EmitKey(tuple.getEmitKey().getEmitterName(), emitKey),
+                    metadataList));
         }
     }
 }
